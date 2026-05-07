@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, ExternalLink } from 'lucide-react';
+import { FileText, CheckCircle, ExternalLink, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -8,6 +8,7 @@ import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Select from '../../components/ui/Select';
+import Modal from '../../components/ui/Modal';
 import type { Document } from '../../lib/types';
 import { formatDate } from '../../lib/utils';
 
@@ -39,8 +40,11 @@ export default function DocumentsPage() {
   const [entityFilter, setEntityFilter] = useState('');
   const [verifiedFilter, setVerifiedFilter] = useState('');
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const canVerify = hasRole(['admin', 'manager']);
+  const canDelete = hasRole(['admin', 'manager']);
 
   useEffect(() => { fetchDocuments(); }, [entityFilter, verifiedFilter]);
 
@@ -64,6 +68,20 @@ export default function DocumentsPage() {
       setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, verified: true } : d));
     }
     setVerifying(null);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
+    if (error) {
+      addNotification('error', 'Failed to delete document');
+    } else {
+      addNotification('success', `Deleted: ${deleteTarget.file_name}`);
+      setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
+    setDeleting(false);
   }
 
   const fmtLabel = (s: string) => s.replace(/_/g, ' ');
@@ -108,15 +126,34 @@ export default function DocumentsPage() {
         </div>
         <DataTable columns={columns} data={documents} searchPlaceholder="Search documents..."
           emptyMessage={loading ? 'Loading...' : 'No documents found'}
-          actions={canVerify ? (d: any) => {
-            return d.verified ? null : (
-              <Button size="sm" variant="outline" onClick={() => handleVerify(d)} loading={verifying === d.id}>
+          actions={canVerify || canDelete ? (d: any) => {
+            const verifyBtn = canVerify && !d.verified ? (
+              <Button key="verify" size="sm" variant="outline" onClick={() => handleVerify(d)} loading={verifying === d.id}>
                 <CheckCircle className="h-4 w-4 mr-1" />Verify
               </Button>
-            );
+            ) : null;
+            const deleteBtn = canDelete ? (
+              <Button key="delete" size="sm" variant="danger" onClick={() => setDeleteTarget(d)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null;
+            if (!verifyBtn && !deleteBtn) return null;
+            return <div className="flex items-center gap-1">{verifyBtn}{deleteBtn}</div>;
           } : undefined}
         />
       </Card>
+
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Document" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            Are you sure you want to permanently delete <span className="font-semibold">{deleteTarget?.file_name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} loading={deleting}>Delete</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

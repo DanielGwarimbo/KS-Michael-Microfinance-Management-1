@@ -9,12 +9,12 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
-import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
 
 export default function LoanDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { profile, roleName } = useAuth();
+  const { profile, roleName, hasRole } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
   const [loan, setLoan] = useState<Loan | null>(null);
@@ -25,6 +25,10 @@ export default function LoanDetailPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const canDelete = hasRole(['admin', 'manager']);
 
   useEffect(() => { if (id) loadLoanData(); }, [id]);
 
@@ -83,6 +87,20 @@ export default function LoanDetailPage() {
     } catch (err: any) {
       addNotification('error', err.message || 'Failed to disburse loan');
     }
+  }
+
+  async function handleDeleteDocument() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
+    if (error) {
+      addNotification('error', 'Failed to delete document');
+    } else {
+      addNotification('success', `Deleted: ${deleteTarget.file_name}`);
+      setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
+    setDeleting(false);
   }
 
   function getDocumentViewUrl(doc: Document): string {
@@ -275,6 +293,15 @@ export default function LoanDetailPage() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteTarget(doc)}
+                        className="text-red-400 hover:text-red-600 shrink-0"
+                        title="Delete document"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -282,6 +309,18 @@ export default function LoanDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Document" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            Are you sure you want to permanently delete <span className="font-semibold">{deleteTarget?.file_name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteDocument} loading={deleting}>Delete</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Reject Loan" size="sm">
         <div className="space-y-4">

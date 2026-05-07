@@ -111,6 +111,43 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
+  /**
+   * Delete a stored object by its object path (e.g. /objects/uploads/<uuid>).
+   * Throws ObjectNotFoundError if the path is invalid or the object does not
+   * exist in GCS (HTTP 404). All other GCS/network errors are propagated as-is.
+   */
+  async deleteObject(objectPath: string): Promise<void> {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new ObjectNotFoundError();
+    }
+
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    try {
+      await file.delete();
+    } catch (err: any) {
+      // GCS returns HTTP 404 when the object does not exist — treat as not-found
+      if (err?.code === 404 || err?.message?.includes("No such object")) {
+        throw new ObjectNotFoundError();
+      }
+      // All other errors (permissions, network, etc.) propagate to caller
+      throw err;
+    }
+  }
+
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();

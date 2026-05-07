@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -9,13 +10,14 @@ import Modal from '../../components/ui/Modal';
 import GuarantorForm from '../../components/clients/GuarantorForm';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, CLIENT_STATUS_COLORS, EMPLOYMENT_LABELS } from '../../lib/utils';
-import { ArrowLeft, Plus, FileText, Upload, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Upload, ExternalLink, Trash2 } from 'lucide-react';
 import type { Client, Guarantor, Loan, Document } from '../../lib/types';
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
+  const { hasRole } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [guarantors, setGuarantors] = useState<Guarantor[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -25,6 +27,10 @@ export default function ClientDetailPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadingGuarantorId, setUploadingGuarantorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const canDelete = hasRole(['admin', 'manager']);
 
   useEffect(() => { if (id) loadClientData(); }, [id]);
 
@@ -87,6 +93,27 @@ export default function ClientDetailPage() {
     } catch {
       addNotification('error', 'Failed to update KYC status');
     }
+  }
+
+  async function handleDeleteDocument() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
+    if (error) {
+      addNotification('error', 'Failed to delete document');
+    } else {
+      addNotification('success', `Deleted: ${deleteTarget.file_name}`);
+      setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+      setGuarantorDocuments((prev) => {
+        const updated = { ...prev };
+        for (const gId of Object.keys(updated)) {
+          updated[gId] = updated[gId].filter((d) => d.id !== deleteTarget.id);
+        }
+        return updated;
+      });
+      setDeleteTarget(null);
+    }
+    setDeleting(false);
   }
 
   function getDocumentViewUrl(doc: Document): string {
@@ -212,6 +239,15 @@ export default function ClientDetailPage() {
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
+                              {canDelete && (
+                                <button
+                                  onClick={() => setDeleteTarget(doc)}
+                                  className="text-red-400 hover:text-red-600 shrink-0"
+                                  title="Delete document"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -258,6 +294,15 @@ export default function ClientDetailPage() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteTarget(doc)}
+                        className="text-red-400 hover:text-red-600 shrink-0"
+                        title="Delete document"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -265,6 +310,18 @@ export default function ClientDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Document" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            Are you sure you want to permanently delete <span className="font-semibold">{deleteTarget?.file_name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteDocument} loading={deleting}>Delete</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={showGuarantorForm} onClose={() => setShowGuarantorForm(false)} title="Add Guarantor" size="lg">
         <GuarantorForm onSave={handleSaveGuarantor} onCancel={() => setShowGuarantorForm(false)} />

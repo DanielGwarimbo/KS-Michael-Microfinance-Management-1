@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { documents, userProfiles } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { ObjectStorageService } from "../lib/objectStorage";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 
 const router = Router();
 router.use(requireAuth);
@@ -122,6 +122,46 @@ router.post("/documents", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: err.message || "Failed to upload document" });
   }
 });
+
+// Only admin/manager can delete documents
+router.delete(
+  "/documents/:id",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const docId = req.params.id as string;
+
+      const [doc] = await db
+        .select({ id: documents.id, file_path: documents.file_path })
+        .from(documents)
+        .where(eq(documents.id, docId));
+
+      if (!doc) {
+        res.status(404).json({ error: "Document not found" });
+        return;
+      }
+
+      if (doc.file_path) {
+        try {
+          await objectStorageService.deleteObject(doc.file_path);
+        } catch (err: any) {
+          if (!(err instanceof ObjectNotFoundError)) {
+            console.error("Storage deletion failed:", err.message);
+            res.status(500).json({ error: "Failed to delete file from storage" });
+            return;
+          }
+        }
+      }
+
+      await db.delete(documents).where(eq(documents.id, docId));
+
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to delete document" });
+    }
+  },
+);
 
 // Only admin/manager can verify documents
 router.put(
