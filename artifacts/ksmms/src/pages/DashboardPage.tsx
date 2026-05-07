@@ -262,7 +262,7 @@ export default function DashboardPage() {
       {/* ── Status Strip ───────────────────────────────────────────── */}
       {(canSeeLoans || canSeeFinancials) && (
         <div className="bg-white rounded-2xl shadow-card px-5 py-4">
-          <div className="flex items-center flex-wrap gap-y-3 divide-x divide-gray-100">
+          <div className="flex items-center overflow-x-auto divide-x divide-gray-100 scrollbar-none">
             {canSeeLoans && (
               <AlertItem
                 dot="bg-red-500" glow="0 0 0 3px rgba(239,68,68,0.15)"

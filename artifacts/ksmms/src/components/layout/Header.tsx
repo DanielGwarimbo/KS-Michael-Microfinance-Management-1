@@ -1,5 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Bell, Settings, ChevronDown } from 'lucide-react';
+import { LogOut, Bell, Settings, ChevronDown, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROLE_LABELS } from '../../lib/utils';
@@ -22,7 +22,11 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const { profile, signOut, roleName } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,30 +48,44 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 flex-shrink-0 z-20" style={{ boxShadow: '0 1px 0 0 #f1f5f9' }}>
-      {/* Page title */}
-      <div>
-        <h2 className="font-display text-[17px] font-bold text-gray-900 leading-tight">{pageTitle}</h2>
-        <p className="text-[11px] text-gray-400 font-medium leading-none mt-0.5 font-display">
-          KS Michael Finance (Pvt) Ltd
-        </p>
+    <header
+      className="h-14 sm:h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20"
+      style={{ boxShadow: '0 1px 0 0 #f1f5f9' }}
+    >
+      {/* Left — hamburger (mobile only) + page title */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 -ml-1 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all duration-150 flex-shrink-0"
+          aria-label="Open navigation"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="min-w-0">
+          <h2 className="font-display text-[15px] sm:text-[17px] font-bold text-gray-900 leading-tight truncate">
+            {pageTitle}
+          </h2>
+          <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium leading-none mt-0.5 font-display hidden sm:block">
+            KS Michael Finance (Pvt) Ltd
+          </p>
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">
+      {/* Right — actions */}
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {/* Notifications bell */}
         <button className="relative p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all duration-150">
           <Bell className="h-[18px] w-[18px]" />
         </button>
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-gray-100 mx-1" />
+        {/* Divider — hidden on tiny screens */}
+        <div className="w-px h-6 bg-gray-100 mx-0.5 sm:mx-1 hidden sm:block" />
 
         {/* User menu */}
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-150 group"
+            className="flex items-center gap-1.5 sm:gap-2.5 px-1.5 sm:px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-150 group"
           >
             {/* Avatar */}
             <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -75,6 +93,7 @@ export default function Header() {
                 {profile ? getInitials(profile.full_name) : '??'}
               </span>
             </div>
+            {/* Name + role — hidden on small screens */}
             <div className="text-left hidden sm:block">
               <p className="text-[13px] font-semibold text-gray-900 leading-tight font-display">{profile?.full_name}</p>
               <p className="text-[11px] text-gray-400 leading-tight">

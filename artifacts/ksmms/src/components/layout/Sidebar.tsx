@@ -13,6 +13,7 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { classNames, ROLE_LABELS } from '../../lib/utils';
 import type { RoleName } from '../../lib/types';
@@ -40,27 +41,40 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobile?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { roleName, profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Mobile is always expanded; desktop can collapse
+  const isCollapsed = mobile ? false : collapsed;
+
   const visibleItems = navItems.filter(item => roleName && item.roles.includes(roleName));
+
+  function handleNav(path: string) {
+    navigate(path);
+    if (mobile && onClose) onClose();
+  }
 
   return (
     <aside
       className={classNames(
         'h-screen bg-brand-950 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0',
-        collapsed ? 'w-[68px]' : 'w-64'
+        isCollapsed ? 'w-[68px]' : 'w-72'
       )}
     >
       {/* Logo / Brand */}
       <div className={classNames(
         'flex items-center h-16 border-b border-white/[0.07] flex-shrink-0',
-        collapsed ? 'justify-center px-2' : 'justify-between px-4'
+        isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
       )}>
-        {!collapsed && (
+        {!isCollapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-9 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10">
               <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-cover" />
@@ -71,28 +85,39 @@ export default function Sidebar() {
             </div>
           </div>
         )}
-        {collapsed && (
+        {isCollapsed && (
           <div className="h-8 w-8 rounded-lg overflow-hidden ring-1 ring-white/10">
             <img src="/logo.png" alt="KSM" className="h-full w-full object-cover" />
           </div>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className={classNames(
-            'p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all duration-150 flex-shrink-0',
-            collapsed && 'absolute left-[68px] top-4 -translate-x-1/2 bg-brand-950 border border-white/10 shadow-lg z-10'
-          )}
-        >
-          {collapsed
-            ? <ChevronRight className="h-3.5 w-3.5" />
-            : <ChevronLeft  className="h-3.5 w-3.5" />
-          }
-        </button>
+
+        {/* Mobile: X close button | Desktop: collapse toggle */}
+        {mobile ? (
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all duration-150 flex-shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className={classNames(
+              'p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all duration-150 flex-shrink-0',
+              isCollapsed && 'absolute left-[68px] top-4 -translate-x-1/2 bg-brand-950 border border-white/10 shadow-lg z-10'
+            )}
+          >
+            {isCollapsed
+              ? <ChevronRight className="h-3.5 w-3.5" />
+              : <ChevronLeft  className="h-3.5 w-3.5" />
+            }
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
-        {!collapsed && (
+        {!isCollapsed && (
           <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest px-3 pb-2 pt-1">Navigation</p>
         )}
         {visibleItems.map(item => {
@@ -100,11 +125,11 @@ export default function Sidebar() {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
+              onClick={() => handleNav(item.path)}
+              title={isCollapsed ? item.label : undefined}
               className={classNames(
                 'w-full flex items-center gap-3 rounded-xl text-[13px] font-medium transition-all duration-150 group relative',
-                collapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
+                isCollapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
                 isActive
                   ? 'bg-gold-400/15 text-gold-400'
                   : 'text-white/55 hover:text-white/90 hover:bg-white/[0.07]'
@@ -119,7 +144,7 @@ export default function Sidebar() {
               )}>
                 {item.icon}
               </span>
-              {!collapsed && (
+              {!isCollapsed && (
                 <span className="font-display truncate">{item.label}</span>
               )}
             </button>
@@ -128,7 +153,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User / Role Footer */}
-      {!collapsed && profile && (
+      {!isCollapsed && profile && (
         <div className="flex-shrink-0 p-3 border-t border-white/[0.07]">
           <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/[0.05]">
             <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
@@ -145,7 +170,7 @@ export default function Sidebar() {
           </div>
         </div>
       )}
-      {collapsed && profile && (
+      {isCollapsed && profile && (
         <div className="flex-shrink-0 p-2 border-t border-white/[0.07] flex justify-center">
           <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center" title={profile.full_name}>
             <span className="text-white text-xs font-bold font-display">

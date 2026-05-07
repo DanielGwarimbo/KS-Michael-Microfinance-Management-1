@@ -58,6 +58,14 @@
 }
 
 @layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .animate-slide-in {
     animation: slide-in-right 0.25s cubic-bezier(0.16,1,0.3,1);
   }
