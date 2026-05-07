@@ -11,6 +11,7 @@ import auditRouter from "./audit";
 import documentsRouter from "./documents";
 import rolesRouter from "./roles";
 import dashboardRouter from "./dashboard";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(auditRouter);
 router.use(documentsRouter);
 router.use(rolesRouter);
 router.use(dashboardRouter);
+router.use(storageRouter);
 
 export default router;

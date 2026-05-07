@@ -7,8 +7,9 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import GuarantorForm from '../../components/clients/GuarantorForm';
+import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, CLIENT_STATUS_COLORS, EMPLOYMENT_LABELS } from '../../lib/utils';
-import { ArrowLeft, Plus, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Upload, ExternalLink } from 'lucide-react';
 import type { Client, Guarantor, Loan, Document } from '../../lib/types';
 
 export default function ClientDetailPage() {
@@ -20,6 +21,7 @@ export default function ClientDetailPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [showGuarantorForm, setShowGuarantorForm] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (id) loadClientData(); }, [id]);
@@ -66,6 +68,10 @@ export default function ClientDetailPage() {
     } catch {
       addNotification('error', 'Failed to update KYC status');
     }
+  }
+
+  function getDocumentViewUrl(doc: Document): string {
+    return `/api/storage${doc.file_path}`;
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
@@ -167,16 +173,40 @@ export default function ClientDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Documents ({documents.length})</CardTitle></CardHeader>
-            {documents.length === 0 ? <p className="text-sm text-gray-500 text-center py-4">No documents uploaded</p> : (
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Documents ({documents.length})</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setShowUploadModal(true)}>
+                  <Upload className="h-4 w-4 mr-1" /> Upload
+                </Button>
+              </div>
+            </CardHeader>
+            {documents.length === 0 ? (
+              <div className="text-center py-6">
+                <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No documents uploaded</p>
+                <Button size="sm" variant="outline" className="mt-2" onClick={() => setShowUploadModal(true)}>
+                  <Upload className="h-4 w-4 mr-1" /> Upload KYC Document
+                </Button>
+              </div>
+            ) : (
               <div className="space-y-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-2 p-2 rounded border border-gray-100 text-sm">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <span className="flex-1 truncate">{doc.file_name}</span>
+                    <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                    <span className="flex-1 truncate text-xs" title={doc.file_name}>{doc.file_name}</span>
                     <Badge colorClass={doc.verified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>
                       {doc.verified ? 'Verified' : 'Unverified'}
                     </Badge>
+                    <a
+                      href={getDocumentViewUrl(doc)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-teal-600 hover:text-teal-800 shrink-0"
+                      title="View / Download"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
                   </div>
                 ))}
               </div>
@@ -188,6 +218,16 @@ export default function ClientDetailPage() {
       <Modal isOpen={showGuarantorForm} onClose={() => setShowGuarantorForm(false)} title="Add Guarantor" size="lg">
         <GuarantorForm onSave={handleSaveGuarantor} onCancel={() => setShowGuarantorForm(false)} />
       </Modal>
+
+      {id && (
+        <UploadDocumentModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          entityType="client_kyc"
+          entityId={id}
+          onSuccess={() => loadClientData()}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, CheckCircle } from 'lucide-react';
+import { FileText, CheckCircle, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -26,6 +26,10 @@ const VERIFIED_OPTIONS = [
   { value: 'verified', label: 'Verified' },
   { value: 'unverified', label: 'Unverified' },
 ];
+
+function getDocumentViewUrl(doc: DocumentRow): string {
+  return `/api/storage${doc.file_path}`;
+}
 
 export default function DocumentsPage() {
   const { hasRole } = useAuth();
@@ -65,7 +69,10 @@ export default function DocumentsPage() {
   const fmtLabel = (s: string) => s.replace(/_/g, ' ');
   const columns = [
     { key: 'file_name', header: 'File Name', render: (d: DocumentRow) => (
-      <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-gray-400" />{d.file_name}</span>
+      <span className="flex items-center gap-2">
+        <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+        <span className="truncate max-w-[180px]" title={d.file_name}>{d.file_name}</span>
+      </span>
     )},
     { key: 'entity_type', header: 'Entity Type', render: (d: DocumentRow) => fmtLabel(d.entity_type) },
     { key: 'document_type', header: 'Doc Type', render: (d: DocumentRow) => fmtLabel(d.document_type) },
@@ -75,6 +82,20 @@ export default function DocumentsPage() {
       <Badge colorClass={d.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>{d.verified ? 'Verified' : 'Unverified'}</Badge>
     )},
     { key: 'created_at', header: 'Created', render: (d: DocumentRow) => formatDate(d.created_at) },
+    { key: 'view', header: 'View', render: (d: DocumentRow) => (
+      d.file_path ? (
+        <a
+          href={getDocumentViewUrl(d)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 text-xs font-medium"
+          title="View / Download"
+        >
+          <ExternalLink className="h-4 w-4" />
+          View
+        </a>
+      ) : <span className="text-gray-400 text-xs">—</span>
+    )},
   ];
 
   return (
