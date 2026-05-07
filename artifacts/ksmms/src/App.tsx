@@ -20,6 +20,7 @@ const AccountingPage = lazy(() => import('./pages/accounting/AccountingPage'));
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage'));
 const AuditLogPage = lazy(() => import('./pages/audit/AuditLogPage'));
 const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 
 function PageLoader() {
   return (
@@ -58,6 +59,7 @@ function App() {
                 <Route path="/reports" element={<ProtectedRoute roles={['admin', 'manager', 'accountant']}><ReportsPage /></ProtectedRoute>} />
                 <Route path="/audit" element={<ProtectedRoute roles={['admin', 'manager']}><AuditLogPage /></ProtectedRoute>} />
                 <Route path="/documents" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer']}><DocumentsPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProfilePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

@@ -105,6 +105,71 @@ router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) =>
   }
 });
 
+// Any authenticated user can update their own profile (name, phone)
+router.put("/users/me", async (req, res) => {
+  try {
+    const { full_name, phone } = req.body;
+    if (!full_name || !full_name.trim()) {
+      res.status(400).json({ error: "Full name is required" });
+      return;
+    }
+    const [updated] = await db
+      .update(userProfiles)
+      .set({ full_name: full_name.trim(), phone: phone || "", updated_at: new Date() })
+      .where(eq(userProfiles.id, req.user!.id))
+      .returning();
+
+    const { password_hash: _, ...safe } = updated;
+    res.json(safe);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to update profile" });
+  }
+});
+
+// Any authenticated user can change their own password
+router.put("/users/me/password", async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) {
+      res.status(400).json({ error: "Current and new password are required" });
+      return;
+    }
+    if (new_password.length < 6) {
+      res.status(400).json({ error: "New password must be at least 6 characters" });
+      return;
+    }
+
+    const [row] = await db
+      .select({ password_hash: userProfiles.password_hash })
+      .from(userProfiles)
+      .where(eq(userProfiles.id, req.user!.id))
+      .limit(1);
+
+    if (!row) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(current_password, row.password_hash);
+    if (!valid) {
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
+    }
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    await db
+      .update(userProfiles)
+      .set({ password_hash, updated_at: new Date() })
+      .where(eq(userProfiles.id, req.user!.id));
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to change password" });
+  }
+});
+
 // All authenticated users can fetch officers (for dropdowns)
 router.get("/officers", async (req, res) => {
   try {
