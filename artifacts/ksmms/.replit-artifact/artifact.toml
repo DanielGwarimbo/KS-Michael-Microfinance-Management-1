@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "KSMMS - KS Microfinance Management System"
+version = "1.0.0"
+id = "artifacts/ksmms"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20176
+
+[services.development]
+run = "pnpm --filter @workspace/ksmms run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ksmms", "run", "build" ]
+publicDir = "artifacts/ksmms/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20176"
+BASE_PATH = "/"
