@@ -43,7 +43,7 @@ export default function AccountingPage() {
     { key: 'created_at', header: 'Date', render: (e: AccountingEntry) => formatDateTime(e.created_at) },
   ];
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">
@@ -55,7 +55,7 @@ export default function AccountingPage() {
         <StatCard title="Outstanding Balance" value={formatCurrency(stats.outstanding)} icon={<AlertTriangle className="h-5 w-5" />} color="amber" />
       </div>
       <div className="flex items-center gap-3">
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
           {TRANSACTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>

@@ -102,7 +102,7 @@ export default function RepaymentCreatePage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
               <textarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-0" rows={2} />
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500 focus:outline-none focus:ring-2 focus:ring-offset-0" rows={2} />
             </div>
           </div>
         </Card>

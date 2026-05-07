@@ -88,7 +88,7 @@ export default function DocumentsPage() {
           href={getDocumentViewUrl(d)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 text-xs font-medium"
+          className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800 text-xs font-medium"
           title="View / Download"
         >
           <ExternalLink className="h-4 w-4" />

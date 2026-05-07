@@ -74,7 +74,7 @@ export default function ClientDetailPage() {
     return `/api/storage${doc.file_path}`;
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
   if (!client) return <div className="text-center py-12 text-gray-500">Client not found</div>;
 
   return (
@@ -202,7 +202,7 @@ export default function ClientDetailPage() {
                       href={getDocumentViewUrl(doc)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-teal-600 hover:text-teal-800 shrink-0"
+                      className="text-brand-600 hover:text-brand-800 shrink-0"
                       title="View / Download"
                     >
                       <ExternalLink className="h-4 w-4" />

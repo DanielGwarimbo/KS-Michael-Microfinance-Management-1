@@ -118,14 +118,14 @@ export default function UploadDocumentModal({
             onClick={() => !uploading && fileInputRef.current?.click()}
             className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors ${
               selectedFile
-                ? 'border-teal-400 bg-teal-50'
-                : 'border-gray-300 hover:border-teal-400 hover:bg-gray-50'
+                ? 'border-brand-400 bg-brand-50'
+                : 'border-gray-300 hover:border-brand-400 hover:bg-gray-50'
             } ${uploading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {selectedFile ? (
               <>
-                <FileText className="h-8 w-8 text-teal-600" />
-                <p className="text-sm font-medium text-teal-700 text-center break-all">{selectedFile.name}</p>
+                <FileText className="h-8 w-8 text-brand-600" />
+                <p className="text-sm font-medium text-brand-700 text-center break-all">{selectedFile.name}</p>
                 <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
                 {!uploading && (
                   <button
@@ -167,7 +167,7 @@ export default function UploadDocumentModal({
             </div>
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-500 transition-all duration-300"
+                className="h-full bg-brand-500 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>

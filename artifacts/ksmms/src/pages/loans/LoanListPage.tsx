@@ -46,7 +46,7 @@ export default function LoanListPage() {
     { key: 'status', header: 'Status', render: (l: Loan) => <Badge colorClass={LOAN_STATUS_COLORS[l.status] || 'bg-gray-100 text-gray-800'}>{l.status}</Badge> },
   ];
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">
@@ -63,7 +63,7 @@ export default function LoanListPage() {
       <div className="flex gap-2 flex-wrap">
         {['', 'pending', 'approved', 'active', 'overdue', 'closed', 'rejected', 'defaulted'].map((status) => (
           <button key={status} onClick={() => setStatusFilter(status)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === status ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === status ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
             {status || 'All'}
           </button>
         ))}

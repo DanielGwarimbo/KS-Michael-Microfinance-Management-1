@@ -44,7 +44,7 @@ export default function RepaymentListPage() {
     { key: 'receiver', header: 'Received By', render: (r: Repayment) => (r as any).receiver?.full_name || '—' },
   ];
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">

@@ -22,9 +22,10 @@ export default function Header() {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">
-          KS Microfinance Management System
+        <h1 className="text-lg font-semibold text-brand-700">
+          KS Michael Finance
         </h1>
+        <p className="text-xs text-gold-600 font-medium -mt-0.5">Microfinance Management System</p>
       </div>
 
       <div className="flex items-center gap-4">
@@ -37,8 +38,8 @@ export default function Header() {
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-teal-700" />
+            <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-brand-700" />
             </div>
             <div className="text-left hidden sm:block">
               <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>

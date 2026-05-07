@@ -23,7 +23,7 @@ const MODULE_COLORS: Record<string, string> = {
   clients: 'bg-blue-100 text-blue-800',
   loans: 'bg-purple-100 text-purple-800',
   repayments: 'bg-green-100 text-green-800',
-  users: 'bg-teal-100 text-teal-800',
+  users: 'bg-brand-100 text-brand-800',
   accounting: 'bg-yellow-100 text-yellow-800',
   documents: 'bg-gray-100 text-gray-800',
 };
@@ -81,12 +81,12 @@ export default function AuditLogPage() {
           <Select label="Module" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} options={MODULE_OPTIONS} />
           <Input label="From" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           <Input label="To" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          <button onClick={loadLogs} className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors h-[38px] self-end">Apply Filter</button>
+          <button onClick={loadLogs} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors h-[38px] self-end">Apply Filter</button>
         </div>
       </Card>
       <Card padding={false}>
         {loading ? (
-          <div className="flex items-center justify-center h-32"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>
+          <div className="flex items-center justify-center h-32"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>
         ) : (
           <DataTable columns={columns} data={logs} searchPlaceholder="Search audit logs..." pageSize={15} />
         )}

@@ -53,12 +53,16 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">KS</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <img src="/logo.png" alt="KS Michael Finance" className="h-9 w-9 object-contain rounded" />
+            <div className="min-w-0">
+              <p className="font-bold text-brand-700 text-xs leading-tight">KS Michael Finance</p>
+              <p className="text-gold-600 text-[10px] font-semibold leading-tight">(Pvt) Ltd</p>
             </div>
-            <span className="font-bold text-gray-900 text-sm">KSMMS</span>
           </div>
+        )}
+        {collapsed && (
+          <img src="/logo.png" alt="KSM" className="h-8 w-8 object-contain rounded mx-auto" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -78,12 +82,12 @@ export default function Sidebar() {
               className={classNames(
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-teal-50 text-teal-700'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               )}
               title={collapsed ? item.label : undefined}
             >
-              <span className={isActive ? 'text-teal-600' : 'text-gray-400'}>{item.icon}</span>
+              <span className={isActive ? 'text-brand-600' : 'text-gray-400'}>{item.icon}</span>
               {!collapsed && <span>{item.label}</span>}
             </button>
           );

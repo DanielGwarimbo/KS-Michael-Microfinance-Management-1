@@ -89,7 +89,7 @@ export default function LoanDetailPage() {
     return `/api/storage${doc.file_path}`;
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
   if (!loan) return <div className="text-center py-12 text-gray-500">Loan not found</div>;
 
   const client = loan.client as any;
@@ -131,7 +131,7 @@ export default function LoanDetailPage() {
               <div><p className="text-gray-500">Interest Rate</p><p className="font-bold text-lg">{loan.interest_rate}%</p></div>
               <div><p className="text-gray-500">Term</p><p className="font-bold text-lg">{loan.term_months} months</p></div>
               <div><p className="text-gray-500">Frequency</p><p className="font-bold text-lg">{FREQUENCY_LABELS[loan.repayment_frequency]}</p></div>
-              <div><p className="text-gray-500">Total Payable</p><p className="font-bold text-lg text-teal-700">{formatCurrency(loan.total_payable)}</p></div>
+              <div><p className="text-gray-500">Total Payable</p><p className="font-bold text-lg text-brand-700">{formatCurrency(loan.total_payable)}</p></div>
               <div><p className="text-gray-500">Installment</p><p className="font-bold text-lg">{formatCurrency(loan.installment_amount)}</p></div>
               <div><p className="text-gray-500">Total Paid</p><p className="font-bold text-lg text-green-700">{formatCurrency(loan.total_paid)}</p></div>
               <div><p className="text-gray-500">Outstanding</p><p className="font-bold text-lg text-red-700">{formatCurrency(loan.outstanding_balance)}</p></div>
@@ -139,7 +139,7 @@ export default function LoanDetailPage() {
             {loan.loan_product_type && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">Loan Product</p>
-                <p className="text-sm font-semibold text-teal-700">{LOAN_PRODUCT_TYPE_LABELS[loan.loan_product_type] || loan.loan_product_type}</p>
+                <p className="text-sm font-semibold text-brand-700">{LOAN_PRODUCT_TYPE_LABELS[loan.loan_product_type] || loan.loan_product_type}</p>
               </div>
             )}
             {loan.purpose && <p className="mt-3 text-sm text-gray-600"><span className="font-medium">Purpose:</span> {loan.purpose}</p>}
@@ -231,7 +231,7 @@ export default function LoanDetailPage() {
                 { num: '3', label: 'Disbursement', meta: (loan as any).disburser?.full_name || 'Pending', done: !!loan.disbursed_by },
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step.done ? 'bg-teal-100 text-teal-700' : step.error ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'}`}>{step.num}</div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step.done ? 'bg-brand-100 text-brand-700' : step.error ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'}`}>{step.num}</div>
                   <div>
                     <p className="text-sm font-medium">{step.label}</p>
                     {step.meta && <p className="text-xs text-gray-500">{step.meta}</p>}
@@ -270,7 +270,7 @@ export default function LoanDetailPage() {
                       href={getDocumentViewUrl(doc)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-teal-600 hover:text-teal-800 shrink-0"
+                      className="text-brand-600 hover:text-brand-800 shrink-0"
                       title="View / Download"
                     >
                       <ExternalLink className="h-4 w-4" />
@@ -288,7 +288,7 @@ export default function LoanDetailPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Rejection Reason</label>
             <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-0"
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500 focus:outline-none focus:ring-2 focus:ring-offset-0"
               rows={3} required />
           </div>
           <div className="flex justify-end gap-3">

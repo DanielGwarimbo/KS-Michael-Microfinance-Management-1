@@ -113,12 +113,12 @@ export default function LoanCreatePage() {
         </Card>
 
         {calculation && (
-          <Card className="bg-teal-50 border-teal-200">
-            <h3 className="text-lg font-semibold text-teal-900 mb-4">Loan Calculation</h3>
+          <Card className="bg-brand-50 border-brand-200">
+            <h3 className="text-lg font-semibold text-brand-900 mb-4">Loan Calculation</h3>
             <div className="grid grid-cols-3 gap-4">
-              <div><p className="text-sm text-teal-700">Total Payable</p><p className="text-xl font-bold text-teal-900">{formatCurrency(calculation.totalPayable)}</p></div>
-              <div><p className="text-sm text-teal-700">Total Interest</p><p className="text-xl font-bold text-teal-900">{formatCurrency(calculation.totalInterest)}</p></div>
-              <div><p className="text-sm text-teal-700">Installment Amount</p><p className="text-xl font-bold text-teal-900">{formatCurrency(calculation.installmentAmount)}</p></div>
+              <div><p className="text-sm text-brand-700">Total Payable</p><p className="text-xl font-bold text-brand-900">{formatCurrency(calculation.totalPayable)}</p></div>
+              <div><p className="text-sm text-brand-700">Total Interest</p><p className="text-xl font-bold text-brand-900">{formatCurrency(calculation.totalInterest)}</p></div>
+              <div><p className="text-sm text-brand-700">Installment Amount</p><p className="text-xl font-bold text-brand-900">{formatCurrency(calculation.installmentAmount)}</p></div>
             </div>
           </Card>
         )}

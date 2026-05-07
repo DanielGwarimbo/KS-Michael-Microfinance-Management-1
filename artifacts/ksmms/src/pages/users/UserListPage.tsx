@@ -70,7 +70,7 @@ export default function UserListPage() {
     { key: 'full_name', header: 'Name' },
     { key: 'email', header: 'Email' },
     { key: 'role', header: 'Role', render: (u: UserProfile) => (
-      <Badge colorClass="bg-teal-50 text-teal-700">{u.role ? ROLE_LABELS[u.role.name] || u.role.name : '—'}</Badge>
+      <Badge colorClass="bg-brand-50 text-brand-700">{u.role ? ROLE_LABELS[u.role.name] || u.role.name : '—'}</Badge>
     )},
     { key: 'is_active', header: 'Status', render: (u: UserProfile) => (
       <Badge colorClass={u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>
@@ -78,7 +78,7 @@ export default function UserListPage() {
     { key: 'created_at', header: 'Created', render: (u: UserProfile) => formatDate(u.created_at) },
   ];
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">
@@ -113,7 +113,7 @@ export default function UserListPage() {
           <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <div className="flex items-center gap-2">
             <input id="is_active" type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
             <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Active</label>
           </div>
           <div className="flex justify-end gap-3 pt-4">

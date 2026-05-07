@@ -25,7 +25,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             'focus:outline-none focus:ring-2 focus:ring-offset-0',
             error
               ? 'border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 text-gray-900 focus:border-teal-500 focus:ring-teal-500',
+              : 'border-gray-300 text-gray-900 focus:border-brand-500 focus:ring-brand-500',
             'placeholder:text-gray-400',
             className
           )}
