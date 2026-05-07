@@ -9,6 +9,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isUUID(val: string) { return UUID_RE.test(val); }
@@ -104,6 +105,19 @@ router.post(
           monthly_income: Number(req.body.monthly_income || 0),
         })
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "client_created",
+        module: "clients",
+        entity_id: row.id,
+        entity_type: "client",
+        details: { client_number: row.client_number, name: `${row.first_name} ${row.last_name}`, client_type: row.client_type },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err: any) {
       console.error(err);
@@ -177,6 +191,19 @@ router.put(
         })
         .where(eq(clients.id, req.params.id as string))
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "client_updated",
+        module: "clients",
+        entity_id: row.id,
+        entity_type: "client",
+        details: { client_number: row.client_number, name: `${row.first_name} ${row.last_name}` },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err: any) {
       console.error(err);
@@ -196,6 +223,19 @@ router.put(
         .set({ kyc_verified: req.body.kyc_verified, updated_at: new Date() })
         .where(eq(clients.id, req.params.id as string))
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: req.body.kyc_verified ? "client_kyc_verified" : "client_kyc_unverified",
+        module: "clients",
+        entity_id: row.id,
+        entity_type: "client",
+        details: { client_number: row.client_number, name: `${row.first_name} ${row.last_name}`, kyc_verified: row.kyc_verified },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err) {
       console.error(err);
@@ -226,6 +266,19 @@ router.put(
         .where(and(eq(guarantors.id, guarantorId), eq(guarantors.client_id, clientId)))
         .returning();
       if (!row) { res.status(404).json({ error: "Guarantor not found" }); return; }
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: kyc_verified ? "guarantor_kyc_verified" : "guarantor_kyc_unverified",
+        module: "clients",
+        entity_id: guarantorId,
+        entity_type: "guarantor",
+        details: { guarantor_id: guarantorId, client_id: clientId, guarantor_name: `${row.first_name} ${row.last_name}`, kyc_verified },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err) {
       console.error(err);
@@ -262,6 +315,19 @@ router.post(
           monthly_income: Number(req.body.monthly_income || 0),
         })
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "guarantor_added",
+        module: "clients",
+        entity_id: row.id,
+        entity_type: "guarantor",
+        details: { guarantor_name: `${row.first_name} ${row.last_name}`, client_id: req.params.id },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err: any) {
       console.error(err);

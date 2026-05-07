@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { sessions, userProfiles, roles } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const router = Router();
 
@@ -64,6 +65,18 @@ router.post("/auth/login", async (req, res) => {
       secure: process.env.NODE_ENV === "production",
     });
 
+    await insertAuditLog({
+      user_id: user.id,
+      user_role: user.role_name ?? "unknown",
+      action: "user_login",
+      module: "auth",
+      entity_id: user.id,
+      entity_type: "user",
+      details: { email: user.email, full_name: user.full_name },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
+
     const { password_hash: _, ...safeUser } = user;
     res.json({ user: safeUser });
   } catch (err) {
@@ -75,7 +88,43 @@ router.post("/auth/login", async (req, res) => {
 router.post("/auth/logout", async (req, res) => {
   const sessionId = req.cookies?.[COOKIE_NAME];
   if (sessionId) {
-    await db.delete(sessions).where(eq(sessions.id, sessionId)).catch(() => {});
+    try {
+      const sessionRows = await db
+        .select({ user_id: sessions.user_id })
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1);
+
+      if (sessionRows.length) {
+        const userId = sessionRows[0].user_id;
+        const userRows = await db
+          .select({ full_name: userProfiles.full_name, role_name: roles.name })
+          .from(userProfiles)
+          .leftJoin(roles, eq(userProfiles.role_id, roles.id))
+          .where(eq(userProfiles.id, userId))
+          .limit(1);
+
+        await db.delete(sessions).where(eq(sessions.id, sessionId));
+
+        if (userRows.length) {
+          await insertAuditLog({
+            user_id: userId,
+            user_role: userRows[0].role_name ?? "unknown",
+            action: "user_logout",
+            module: "auth",
+            entity_id: userId,
+            entity_type: "user",
+            details: { full_name: userRows[0].full_name },
+            ip_address: getIp(req),
+            device_info: getDevice(req),
+          });
+        }
+      } else {
+        await db.delete(sessions).where(eq(sessions.id, sessionId)).catch(() => {});
+      }
+    } catch {
+      await db.delete(sessions).where(eq(sessions.id, sessionId)).catch(() => {});
+    }
   }
   res.clearCookie(COOKIE_NAME);
   res.json({ ok: true });

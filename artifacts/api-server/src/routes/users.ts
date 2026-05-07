@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { userProfiles, roles } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const router = Router();
 router.use(requireAuth);
@@ -60,6 +61,18 @@ router.post("/users", requireRole("admin"), async (req, res) => {
       })
       .returning();
 
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "user_created",
+      module: "users",
+      entity_id: row.id,
+      entity_type: "user",
+      details: { email: row.email, full_name: row.full_name, role_id: row.role_id, is_active: row.is_active },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
+
     const { password_hash: _, ...safe } = row;
     res.json(safe);
   } catch (err: any) {
@@ -88,7 +101,7 @@ router.put("/users/:id/reset-password", requireRole("admin"), async (req, res) =
     }
 
     const existing = await db
-      .select({ id: userProfiles.id })
+      .select({ id: userProfiles.id, full_name: userProfiles.full_name, email: userProfiles.email })
       .from(userProfiles)
       .where(eq(userProfiles.id, userId))
       .limit(1);
@@ -103,6 +116,18 @@ router.put("/users/:id/reset-password", requireRole("admin"), async (req, res) =
       .update(userProfiles)
       .set({ password_hash, updated_at: new Date() })
       .where(eq(userProfiles.id, userId));
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "user_password_reset",
+      module: "users",
+      entity_id: userId,
+      entity_type: "user",
+      details: { target_user_email: existing[0].email, target_user_name: existing[0].full_name },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
 
     res.json({ success: true });
   } catch (err: any) {
@@ -120,7 +145,7 @@ router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) =>
       return;
     }
     const existing = await db
-      .select({ is_active: userProfiles.is_active })
+      .select({ is_active: userProfiles.is_active, full_name: userProfiles.full_name, email: userProfiles.email })
       .from(userProfiles)
       .where(eq(userProfiles.id, userId))
       .limit(1);
@@ -135,6 +160,18 @@ router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) =>
       .set({ is_active: !existing[0].is_active, updated_at: new Date() })
       .where(eq(userProfiles.id, userId))
       .returning();
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: updated.is_active ? "user_activated" : "user_deactivated",
+      module: "users",
+      entity_id: userId,
+      entity_type: "user",
+      details: { target_user_email: existing[0].email, target_user_name: existing[0].full_name, is_active: updated.is_active },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
 
     const { password_hash: _, ...safe } = updated;
     res.json(safe);
@@ -157,6 +194,18 @@ router.put("/users/me", async (req, res) => {
       .set({ full_name: full_name.trim(), phone: phone || "", updated_at: new Date() })
       .where(eq(userProfiles.id, req.user!.id))
       .returning();
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "profile_updated",
+      module: "users",
+      entity_id: req.user!.id,
+      entity_type: "user",
+      details: { full_name: updated.full_name, phone: updated.phone },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
 
     const { password_hash: _, ...safe } = updated;
     res.json(safe);
@@ -201,6 +250,18 @@ router.put("/users/me/password", async (req, res) => {
       .update(userProfiles)
       .set({ password_hash, updated_at: new Date() })
       .where(eq(userProfiles.id, req.user!.id));
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "password_changed",
+      module: "users",
+      entity_id: req.user!.id,
+      entity_type: "user",
+      details: { email: req.user!.email },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
 
     res.json({ success: true });
   } catch (err: any) {

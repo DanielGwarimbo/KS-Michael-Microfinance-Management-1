@@ -10,6 +10,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const router = Router();
 router.use(requireAuth);
@@ -156,6 +157,29 @@ router.post(
           .set({ amount_paid: newAmountPaid, paid_date: scheduleStatus === "paid" ? payment_date : null, status: scheduleStatus })
           .where(eq(repaymentSchedules.id, nextPending.id));
       }
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: newStatus === "closed" ? "loan_fully_repaid" : "repayment_recorded",
+        module: "repayments",
+        entity_id: repayment.id,
+        entity_type: "repayment",
+        details: {
+          receipt_number,
+          loan_number: loan.loan_number,
+          loan_id,
+          amount: amt,
+          principal_amount: principal,
+          interest_amount: interest,
+          payment_method,
+          payment_date,
+          outstanding_balance_after: newOutstanding,
+          loan_status_after: newStatus,
+        },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
 
       res.json(repayment);
     } catch (err: any) {

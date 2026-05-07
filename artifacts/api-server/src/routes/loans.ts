@@ -11,6 +11,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, inArray, sql, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isUUID(val: string) { return UUID_RE.test(val); }
@@ -188,6 +189,26 @@ router.post(
           total_paid: 0,
         })
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "loan_application_submitted",
+        module: "loans",
+        entity_id: row.id,
+        entity_type: "loan",
+        details: {
+          loan_number: row.loan_number,
+          principal: row.principal,
+          term_months: row.term_months,
+          interest_rate: row.interest_rate,
+          product_type: row.loan_product_type,
+          client_id: row.client_id,
+        },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(row);
     } catch (err: any) {
       console.error(err);
@@ -363,6 +384,18 @@ router.post(
         .where(eq(loans.id, approveId))
         .returning();
 
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "loan_approved",
+        module: "loans",
+        entity_id: updated.id,
+        entity_type: "loan",
+        details: { loan_number: updated.loan_number, principal: updated.principal, client_id: updated.client_id },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json(updated);
     } catch (err: any) {
       console.error(err);
@@ -390,6 +423,18 @@ router.post(
         .set({ status: "rejected", rejected_by: req.user!.id, rejected_at: new Date(), rejection_reason, updated_at: new Date() })
         .where(eq(loans.id, rejectId))
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "loan_rejected",
+        module: "loans",
+        entity_id: updated.id,
+        entity_type: "loan",
+        details: { loan_number: updated.loan_number, rejection_reason, client_id: updated.client_id },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
 
       res.json(updated);
     } catch (err: any) {
@@ -442,6 +487,25 @@ router.post(
       if (schedule.length > 0) {
         await db.insert(repaymentSchedules).values(schedule.map((s) => ({ ...s, loan_id: loan.id })));
       }
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "loan_disbursed",
+        module: "loans",
+        entity_id: updated.id,
+        entity_type: "loan",
+        details: {
+          loan_number: updated.loan_number,
+          principal: updated.principal,
+          start_date: startDate,
+          maturity_date: maturityDate,
+          client_id: updated.client_id,
+          installments: schedule.length,
+        },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
 
       res.json(updated);
     } catch (err: any) {

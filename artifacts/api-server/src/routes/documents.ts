@@ -5,6 +5,7 @@ import { documents, userProfiles } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
 const router = Router();
 router.use(requireAuth);
@@ -95,13 +96,11 @@ router.post("/documents", upload.single("file"), async (req, res) => {
       return;
     }
 
-    // Upload the file buffer to Replit Object Storage
     const objectPath = await objectStorageService.uploadBuffer(
       req.file.buffer,
       req.file.mimetype,
     );
 
-    // Persist the document metadata in the database
     const [doc] = await db
       .insert(documents)
       .values({
@@ -115,6 +114,25 @@ router.post("/documents", upload.single("file"), async (req, res) => {
         uploaded_by: req.user!.id,
       })
       .returning();
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "document_uploaded",
+      module: "documents",
+      entity_id: doc.id,
+      entity_type: "document",
+      details: {
+        file_name: doc.file_name,
+        document_type: doc.document_type,
+        entity_type: doc.entity_type,
+        entity_id: doc.entity_id,
+        file_size: doc.file_size,
+        mime_type: doc.mime_type,
+      },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
 
     res.json(doc);
   } catch (err: any) {
@@ -132,7 +150,14 @@ router.delete(
       const docId = req.params.id as string;
 
       const [doc] = await db
-        .select({ id: documents.id, file_path: documents.file_path })
+        .select({
+          id: documents.id,
+          file_path: documents.file_path,
+          file_name: documents.file_name,
+          document_type: documents.document_type,
+          entity_type: documents.entity_type,
+          entity_id: documents.entity_id,
+        })
         .from(documents)
         .where(eq(documents.id, docId));
 
@@ -155,6 +180,23 @@ router.delete(
 
       await db.delete(documents).where(eq(documents.id, docId));
 
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "document_deleted",
+        module: "documents",
+        entity_id: docId,
+        entity_type: "document",
+        details: {
+          file_name: doc.file_name,
+          document_type: doc.document_type,
+          entity_type: doc.entity_type,
+          entity_id: doc.entity_id,
+        },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
+
       res.json({ success: true });
     } catch (err: any) {
       console.error(err);
@@ -175,6 +217,23 @@ router.put(
         .set({ verified: true, verified_by: req.user!.id, verified_at: new Date() })
         .where(eq(documents.id, docId))
         .returning();
+
+      await insertAuditLog({
+        user_id: req.user!.id,
+        user_role: req.user!.role_name,
+        action: "document_verified",
+        module: "documents",
+        entity_id: updated.id,
+        entity_type: "document",
+        details: {
+          file_name: updated.file_name,
+          document_type: updated.document_type,
+          entity_type: updated.entity_type,
+          entity_id: updated.entity_id,
+        },
+        ip_address: getIp(req),
+        device_info: getDevice(req),
+      });
 
       res.json(updated);
     } catch (err: any) {
