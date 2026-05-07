@@ -9,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
-import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle } from 'lucide-react';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
 
 export default function LoanDetailPage() {
@@ -93,6 +93,9 @@ export default function LoanDetailPage() {
   if (!loan) return <div className="text-center py-12 text-gray-500">Loan not found</div>;
 
   const client = loan.client as any;
+  const overdueInstallments = schedule.filter((s) => s.status === 'overdue');
+  const overdueCount = overdueInstallments.length;
+  const overdueTotal = overdueInstallments.reduce((sum, s) => sum + Math.max(0, s.amount_due - s.amount_paid), 0);
 
   return (
     <div className="space-y-6">
@@ -142,9 +145,32 @@ export default function LoanDetailPage() {
             {loan.purpose && <p className="mt-3 text-sm text-gray-600"><span className="font-medium">Purpose:</span> {loan.purpose}</p>}
           </Card>
 
+          {overdueCount > 0 && (
+            <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-800">
+                  {overdueCount} overdue installment{overdueCount !== 1 ? 's' : ''}
+                </p>
+                <p className="text-sm text-red-700 mt-0.5">
+                  Total past-due: <span className="font-bold">{formatCurrency(overdueTotal)}</span>
+                </p>
+              </div>
+            </div>
+          )}
+
           {schedule.length > 0 && (
             <Card>
-              <CardHeader><CardTitle>Repayment Schedule</CardTitle></CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Repayment Schedule</CardTitle>
+                  {overdueCount > 0 && (
+                    <span className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-0.5">
+                      {overdueCount} overdue
+                    </span>
+                  )}
+                </div>
+              </CardHeader>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
@@ -156,15 +182,15 @@ export default function LoanDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {schedule.map((s) => (
-                      <tr key={s.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2">{s.installment_number}</td>
-                        <td className="px-3 py-2">{formatDate(s.due_date)}</td>
+                      <tr key={s.id} className={s.status === 'overdue' ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}>
+                        <td className={`px-3 py-2 font-medium ${s.status === 'overdue' ? 'text-red-700' : ''}`}>{s.installment_number}</td>
+                        <td className={`px-3 py-2 ${s.status === 'overdue' ? 'text-red-700 font-medium' : ''}`}>{formatDate(s.due_date)}</td>
                         <td className="px-3 py-2">{formatCurrency(s.amount_due)}</td>
                         <td className="px-3 py-2">{formatCurrency(s.principal_portion)}</td>
                         <td className="px-3 py-2">{formatCurrency(s.interest_portion)}</td>
                         <td className="px-3 py-2">{formatCurrency(s.amount_paid)}</td>
                         <td className="px-3 py-2">
-                          <Badge colorClass={s.status === 'paid' ? 'bg-green-50 text-green-700' : s.status === 'overdue' ? 'bg-red-50 text-red-700' : s.status === 'partial' ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-700'}>{s.status}</Badge>
+                          <Badge colorClass={s.status === 'paid' ? 'bg-green-50 text-green-700' : s.status === 'overdue' ? 'bg-red-100 text-red-700 border border-red-200' : s.status === 'partial' ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-700'}>{s.status}</Badge>
                         </td>
                       </tr>
                     ))}
