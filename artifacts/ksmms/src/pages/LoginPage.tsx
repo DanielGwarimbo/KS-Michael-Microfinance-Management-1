@@ -43,7 +43,7 @@ export default function LoginPage() {
 
     const role = loggedInUser?.role_name as RoleName | undefined;
     const destination = role ? (ROLE_HOME[role] ?? '/dashboard') : '/dashboard';
-    addNotification('success', `Welcome back, ${loggedInUser?.full_name ?? ''}!`);
+    addNotification('success', `Welcome, ${loggedInUser?.full_name ?? ''}!`);
     navigate(destination, { replace: true });
     setLoading(false);
   };

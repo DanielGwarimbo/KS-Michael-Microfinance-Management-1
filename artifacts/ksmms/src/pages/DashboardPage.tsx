@@ -91,7 +91,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {profile?.full_name?.split(' ')[0]}
+            Welcome, {profile?.full_name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {roleName ? ROLE_DESCRIPTIONS[roleName] : 'Microfinance Management System'}
