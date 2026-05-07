@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { formatCurrency } from '../../lib/utils';
 import type { Loan } from '../../lib/types';
@@ -23,9 +23,7 @@ function exportCSV(data: Record<string, unknown>[], filename: string) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.csv`;
-  link.click();
+  link.href = url; link.download = `${filename}.csv`; link.click();
   URL.revokeObjectURL(url);
 }
 
@@ -42,43 +40,12 @@ export default function ReportsPage() {
   async function loadReportData() {
     setLoading(true);
     try {
-      const [loansRes, repaymentsRes, accountingRes] = await Promise.all([
-        supabase.from('loans').select('*, client:clients(first_name, last_name)'),
-        supabase.from('repayments').select('amount, received_by'),
-        supabase.from('accounting_entries').select('transaction_type, amount'),
-      ]);
-      const loans = (loansRes.data || []) as Loan[];
-      const repayments = repaymentsRes.data || [];
-      const entries = accountingRes.data || [];
-
-      const activeLoans = loans.filter(l => l.status === 'active');
-      const overdue = loans.filter(l => l.status === 'overdue');
-      const disbursed = loans.filter(l => ['active','overdue','closed','defaulted'].includes(l.status));
-      const totalDisbursed = disbursed.reduce((s, l) => s + Number(l.principal), 0);
-      const totalCollected = repayments.reduce((s, r) => s + Number(r.amount), 0);
-      const outstanding = [...activeLoans, ...overdue].reduce((s, l) => s + Number(l.outstanding_balance), 0);
-      const interestEarned = entries.filter(e => e.transaction_type === 'interest_earned').reduce((s, e) => s + Number(e.amount), 0);
-
-      setPortfolio({ totalLoans: loans.length, activeLoans: activeLoans.length, totalDisbursed, totalCollected, outstandingBalance: outstanding, interestEarned });
-      setOverdueLoans(overdue);
-
-      if (tab === 'officer') {
-        const [officersRes, clientsRes] = await Promise.all([
-          supabase.from('user_profiles').select('id, full_name').eq('is_active', true),
-          supabase.from('clients').select('assigned_officer_id'),
-        ]);
-        const officerProfiles = officersRes.data || [];
-        const allClients = clientsRes.data || [];
-        const officerData = officerProfiles.map(o => {
-          const oLoans = loans.filter(l => l.created_by === o.id);
-          const oClients = allClients.filter(c => c.assigned_officer_id === o.id);
-          const oCollected = repayments.filter(r => r.received_by === o.id).reduce((s, r) => s + Number(r.amount), 0);
-          return { name: o.full_name, totalClients: oClients.length, totalLoans: oLoans.length, totalDisbursed: oLoans.reduce((s, l) => s + Number(l.principal), 0), totalCollected: oCollected };
-        });
-        setOfficers(officerData);
-      }
-    } catch (err) {
-      console.error('Report load error:', err);
+      const { data, error } = await api.get<any>('/reports/summary');
+      if (error) throw new Error(error);
+      setPortfolio(data.portfolio || portfolio);
+      setOverdueLoans(data.overdueLoans || []);
+      if (tab === 'officer') setOfficers(data.officers || []);
+    } catch {
       addNotification('error', 'Failed to load report data');
     } finally {
       setLoading(false);
@@ -90,9 +57,7 @@ export default function ReportsPage() {
     return Math.max(0, Math.floor((Date.now() - new Date(loan.maturity_date).getTime()) / 86400000));
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
-  }
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
 
   const tabs: { key: ReportTab; label: string; icon: React.ReactNode }[] = [
     { key: 'portfolio', label: 'Portfolio Report', icon: <FileBarChart className="h-4 w-4" /> },
@@ -100,7 +65,7 @@ export default function ReportsPage() {
     { key: 'officer', label: 'Loan Officer Performance', icon: <Users className="h-4 w-4" /> },
   ];
 
-  const overdueRows = overdueLoans.map(l => ({ client: l.client ? `${l.client.first_name} ${l.client.last_name}` : '—', loan_number: l.loan_number, outstanding_balance: formatCurrency(l.outstanding_balance), days_overdue: getDaysOverdue(l) }));
+  const overdueRows = overdueLoans.map(l => ({ client: (l.client as any) ? `${(l.client as any).first_name} ${(l.client as any).last_name}` : '—', loan_number: l.loan_number, outstanding_balance: formatCurrency(l.outstanding_balance), days_overdue: getDaysOverdue(l) }));
   const officerRows = officers.map(o => ({ name: o.name, total_clients: o.totalClients, total_loans: o.totalLoans, total_disbursed: formatCurrency(o.totalDisbursed), total_collected: formatCurrency(o.totalCollected) }));
 
   return (

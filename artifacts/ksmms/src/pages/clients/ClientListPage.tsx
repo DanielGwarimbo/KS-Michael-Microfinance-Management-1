@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
@@ -22,22 +22,14 @@ export default function ClientListPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [officers, setOfficers] = useState<UserProfile[]>([]);
 
-  useEffect(() => {
-    loadClients();
-    loadOfficers();
-  }, []);
+  useEffect(() => { loadClients(); loadOfficers(); }, []);
 
   async function loadClients() {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*, assigned_officer:user_profiles!clients_assigned_officer_id_fkey(id, full_name, email)')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setClients((data as unknown as Client[]) || []);
-    } catch (err) {
-      console.error(err);
+      const { data, error } = await api.get<Client[]>('/clients');
+      if (error) throw new Error(error);
+      setClients(data || []);
+    } catch {
       addNotification('error', 'Failed to load clients');
     } finally {
       setLoading(false);
@@ -45,28 +37,19 @@ export default function ClientListPage() {
   }
 
   async function loadOfficers() {
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('*, role:roles(*)')
-      .eq('is_active', true);
-    const loanOfficers = (data || []).filter((u: any) => u.role?.name === 'loan_officer');
-    setOfficers(loanOfficers);
+    const { data } = await api.get<UserProfile[]>('/officers');
+    setOfficers(data || []);
   }
 
   async function handleSave(clientData: Partial<Client>) {
     try {
       if (editingClient) {
-        const { error } = await supabase
-          .from('clients')
-          .update({ ...clientData, updated_at: new Date().toISOString() })
-          .eq('id', editingClient.id);
-        if (error) throw error;
+        const { error } = await api.put(`/clients/${editingClient.id}`, clientData);
+        if (error) throw new Error(error);
         addNotification('success', 'Client updated successfully');
       } else {
-        const { error } = await supabase
-          .from('clients')
-          .insert({ ...clientData, created_by: profile?.id });
-        if (error) throw error;
+        const { error } = await api.post('/clients', clientData);
+        if (error) throw new Error(error);
         addNotification('success', 'Client created successfully');
       }
       setShowForm(false);
@@ -99,11 +82,7 @@ export default function ClientListPage() {
   ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
   }
 
   return (
@@ -117,34 +96,19 @@ export default function ClientListPage() {
           <Plus className="h-4 w-4 mr-2" /> New Client
         </Button>
       </div>
-
       <DataTable
         columns={columns}
         data={clients}
         searchPlaceholder="Search clients..."
-        onRowClick={(item) => navigate(`/clients/${item.id}`)}        actions={(item) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/clients/${item.id}`)}
-          >
+        onRowClick={(item) => navigate(`/clients/${item.id}`)}
+        actions={(item) => (
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/clients/${item.id}`)}>
             <Eye className="h-4 w-4" />
           </Button>
         )}
       />
-
-      <Modal
-        isOpen={showForm}
-        onClose={() => { setShowForm(false); setEditingClient(null); }}
-        title={editingClient ? 'Edit Client' : 'New Client'}
-        size="xl"
-      >
-        <ClientForm
-          client={editingClient}
-          officers={officers}
-          onSave={handleSave}
-          onCancel={() => { setShowForm(false); setEditingClient(null); }}
-        />
+      <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditingClient(null); }} title={editingClient ? 'Edit Client' : 'New Client'} size="xl">
+        <ClientForm client={editingClient} officers={officers} onSave={handleSave} onCancel={() => { setShowForm(false); setEditingClient(null); }} />
       </Modal>
     </div>
   );

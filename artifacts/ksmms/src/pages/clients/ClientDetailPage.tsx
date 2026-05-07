@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -22,25 +22,22 @@ export default function ClientDetailPage() {
   const [showGuarantorForm, setShowGuarantorForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) loadClientData();
-  }, [id]);
+  useEffect(() => { if (id) loadClientData(); }, [id]);
 
   async function loadClientData() {
     try {
       const [clientRes, guarantorsRes, loansRes, docsRes] = await Promise.all([
-        supabase.from('clients').select('*, assigned_officer:user_profiles!clients_assigned_officer_id_fkey(id, full_name, email)').eq('id', id).maybeSingle(),
-        supabase.from('guarantors').select('*').eq('client_id', id),
-        supabase.from('loans').select('*').eq('client_id', id).order('created_at', { ascending: false }),
-        supabase.from('documents').select('*').eq('entity_id', id),
+        api.get<Client>(`/clients/${id}`),
+        api.get<Guarantor[]>(`/clients/${id}/guarantors`),
+        api.get<Loan[]>(`/clients/${id}/loans`),
+        api.get<Document[]>(`/clients/${id}/documents`),
       ]);
-
-      if (clientRes.error) throw clientRes.error;
-      setClient(clientRes.data as unknown as Client);
-      setGuarantors((guarantorsRes.data || []) as Guarantor[]);
-      setLoans((loansRes.data || []) as Loan[]);
-      setDocuments((docsRes.data || []) as Document[]);
-    } catch (err: any) {
+      if (clientRes.error) throw new Error(clientRes.error);
+      setClient(clientRes.data);
+      setGuarantors(guarantorsRes.data || []);
+      setLoans(loansRes.data || []);
+      setDocuments(docsRes.data || []);
+    } catch {
       addNotification('error', 'Failed to load client');
     } finally {
       setLoading(false);
@@ -49,8 +46,8 @@ export default function ClientDetailPage() {
 
   async function handleSaveGuarantor(data: Partial<Guarantor>) {
     try {
-      const { error } = await supabase.from('guarantors').insert({ ...data, client_id: id });
-      if (error) throw error;
+      const { error } = await api.post(`/clients/${id}/guarantors`, data);
+      if (error) throw new Error(error);
       addNotification('success', 'Guarantor added');
       setShowGuarantorForm(false);
       loadClientData();
@@ -62,36 +59,22 @@ export default function ClientDetailPage() {
   async function toggleKyc() {
     if (!client) return;
     try {
-      const { error } = await supabase
-        .from('clients')
-        .update({ kyc_verified: !client.kyc_verified, updated_at: new Date().toISOString() })
-        .eq('id', client.id);
-      if (error) throw error;
+      const { error } = await api.put(`/clients/${client.id}/kyc`, { kyc_verified: !client.kyc_verified });
+      if (error) throw new Error(error);
       addNotification('success', client.kyc_verified ? 'KYC verification removed' : 'KYC verified');
       loadClientData();
-    } catch (err: any) {
+    } catch {
       addNotification('error', 'Failed to update KYC status');
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!client) {
-    return <div className="text-center py-12 text-gray-500">Client not found</div>;
-  }
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-teal-600 border-t-transparent rounded-full" /></div>;
+  if (!client) return <div className="text-center py-12 text-gray-500">Client not found</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/clients')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+        <Button variant="ghost" onClick={() => navigate('/clients')}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{client.first_name} {client.last_name}</h1>
           <p className="text-sm text-gray-500">{client.client_number} | {client.id_number}</p>
@@ -100,17 +83,13 @@ export default function ClientDetailPage() {
         <Badge colorClass={client.kyc_verified ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}>
           KYC: {client.kyc_verified ? 'Verified' : 'Pending'}
         </Badge>
-        <Button variant="outline" onClick={toggleKyc}>
-          {client.kyc_verified ? 'Unverify KYC' : 'Verify KYC'}
-        </Button>
+        <Button variant="outline" onClick={toggleKyc}>{client.kyc_verified ? 'Unverify KYC' : 'Verify KYC'}</Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div><p className="text-gray-500">Phone</p><p className="font-medium">{client.phone}</p></div>
               <div><p className="text-gray-500">Email</p><p className="font-medium">{client.email || '—'}</p></div>
@@ -128,9 +107,7 @@ export default function ClientDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Employment & Address</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Employment & Address</CardTitle></CardHeader>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div><p className="text-gray-500">Status</p><p className="font-medium">{EMPLOYMENT_LABELS[client.employment_status]}</p></div>
               <div><p className="text-gray-500">Employer</p><p className="font-medium">{client.employer || '—'}</p></div>
@@ -150,23 +127,15 @@ export default function ClientDetailPage() {
                 </Button>
               </div>
             </CardHeader>
-            {loans.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No loans yet</p>
-            ) : (
+            {loans.length === 0 ? <p className="text-sm text-gray-500 text-center py-4">No loans yet</p> : (
               <div className="space-y-2">
                 {loans.map((loan) => (
-                  <div
-                    key={loan.id}
-                    onClick={() => navigate(`/loans/${loan.id}`)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
-                  >
+                  <div key={loan.id} onClick={() => navigate(`/loans/${loan.id}`)} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer">
                     <div>
                       <p className="text-sm font-medium">{loan.loan_number}</p>
                       <p className="text-xs text-gray-500">{formatCurrency(loan.principal)} | {loan.term_months} months</p>
                     </div>
-                    <Badge colorClass={`text-xs ${loan.status === 'active' ? 'bg-green-50 text-green-700' : loan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'}`}>
-                      {loan.status}
-                    </Badge>
+                    <Badge colorClass={`text-xs ${loan.status === 'active' ? 'bg-green-50 text-green-700' : loan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'}`}>{loan.status}</Badge>
                   </div>
                 ))}
               </div>
@@ -179,14 +148,10 @@ export default function ClientDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Guarantors ({guarantors.length})</CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setShowGuarantorForm(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowGuarantorForm(true)}><Plus className="h-4 w-4" /></Button>
               </div>
             </CardHeader>
-            {guarantors.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No guarantors</p>
-            ) : (
+            {guarantors.length === 0 ? <p className="text-sm text-gray-500 text-center py-4">No guarantors</p> : (
               <div className="space-y-3">
                 {guarantors.map((g) => (
                   <div key={g.id} className="p-3 rounded-lg border border-gray-100">
@@ -202,12 +167,8 @@ export default function ClientDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Documents ({documents.length})</CardTitle>
-            </CardHeader>
-            {documents.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No documents uploaded</p>
-            ) : (
+            <CardHeader><CardTitle>Documents ({documents.length})</CardTitle></CardHeader>
+            {documents.length === 0 ? <p className="text-sm text-gray-500 text-center py-4">No documents uploaded</p> : (
               <div className="space-y-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-2 p-2 rounded border border-gray-100 text-sm">
