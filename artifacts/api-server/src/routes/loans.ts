@@ -9,7 +9,7 @@ import {
   accountingEntries,
   userProfiles,
 } from "@workspace/db/schema";
-import { eq, inArray, sql, desc } from "drizzle-orm";
+import { eq, inArray, sql, desc, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
@@ -377,6 +377,38 @@ router.post(
         res.status(400).json({ error: "Only pending loans can be approved" });
         return;
       }
+
+      // ── KYC document gate ────────────────────────────────────────────────
+      const clientDocs = await db
+        .select({ document_type: documents.document_type })
+        .from(documents)
+        .where(
+          and(
+            eq(documents.entity_id, loan.client_id),
+            eq(documents.entity_type, "client_kyc"),
+          ),
+        );
+
+      const uploadedTypes = new Set(clientDocs.map((d) => d.document_type));
+
+      const requiredGroups = [
+        { label: "National ID or Passport",               types: ["national_id", "passport"] },
+        { label: "Proof of Residence",                    types: ["proof_of_residence"] },
+        { label: "Proof of Income (payslip, employment letter, or bank statement)", types: ["proof_of_employment", "payslip", "bank_statement"] },
+      ];
+
+      const missing = requiredGroups
+        .filter((g) => !g.types.some((t) => uploadedTypes.has(t)))
+        .map((g) => g.label);
+
+      if (missing.length > 0) {
+        res.status(422).json({
+          error: `Client KYC is incomplete. Missing: ${missing.join(", ")}`,
+          missing_documents: missing,
+        });
+        return;
+      }
+      // ────────────────────────────────────────────────────────────────────
 
       const [updated] = await db
         .update(loans)

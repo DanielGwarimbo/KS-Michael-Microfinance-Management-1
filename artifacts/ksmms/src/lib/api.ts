@@ -14,7 +14,7 @@ async function request<T>(
     });
     const json = await res.json().catch(() => ({ error: "Invalid response" }));
     if (!res.ok)
-      return { data: null, error: json.error || `Error ${res.status}` };
+      return { data: json as T, error: json.error || `Error ${res.status}` };
     return { data: json as T, error: null };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Network error";

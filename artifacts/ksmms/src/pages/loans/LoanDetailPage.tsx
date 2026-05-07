@@ -28,6 +28,7 @@ export default function LoanDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [missingDocs, setMissingDocs] = useState<string[]>([]);
 
   const canDeleteDoc = (doc: Document) =>
     hasRole(['admin', 'manager']) || doc.uploaded_by === user?.id;
@@ -56,9 +57,16 @@ export default function LoanDetailPage() {
 
   async function handleApprove() {
     if (!loan) return;
+    setMissingDocs([]);
     try {
-      const { error } = await api.post(`/loans/${loan.id}/approve`);
-      if (error) throw new Error(error);
+      const result = await api.post<{ missing_documents?: string[] }>(`/loans/${loan.id}/approve`);
+      if (result.error) {
+        const missing = (result.data as any)?.missing_documents;
+        if (Array.isArray(missing) && missing.length > 0) {
+          setMissingDocs(missing);
+        }
+        throw new Error(result.error);
+      }
       addNotification('success', 'Loan approved');
       loadLoanData();
     } catch (err: any) {
@@ -141,6 +149,44 @@ export default function LoanDetailPage() {
           </Button>
         )}
       </div>
+
+      {/* Missing KYC documents alert */}
+      {missingDocs.length > 0 && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-red-800">Cannot approve — client KYC documents are incomplete</p>
+              <p className="text-xs text-red-700 mt-1">
+                Upload the following documents on the client profile before approving this loan:
+              </p>
+              <ul className="mt-2 space-y-1">
+                {missingDocs.map((doc) => (
+                  <li key={doc} className="flex items-center gap-2 text-xs text-red-700 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                    {doc}
+                  </li>
+                ))}
+              </ul>
+              {loan.client_id && (
+                <button
+                  onClick={() => navigate(`/clients/${loan.client_id}`)}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-red-700 underline underline-offset-2 hover:text-red-900 transition-colors"
+                >
+                  Go to client profile to upload documents →
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setMissingDocs([])}
+              className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
+              title="Dismiss"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
