@@ -230,9 +230,14 @@ export default function ClientDetailPage() {
                         <div>
                           <p className="text-sm font-medium">{g.first_name} {g.last_name}</p>
                           <p className="text-xs text-gray-500">{g.relationship} | {g.phone}</p>
-                          <Badge colorClass={g.kyc_verified ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'} className="mt-1">
-                            {g.kyc_verified ? 'KYC Verified' : 'KYC Pending'}
-                          </Badge>
+                          <div className="flex items-center gap-1 mt-1 flex-wrap">
+                            <Badge colorClass={g.kyc_verified ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}>
+                              {g.kyc_verified ? 'KYC Verified' : 'KYC Pending'}
+                            </Badge>
+                            <Badge colorClass={gDocs.length > 0 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}>
+                              {gDocs.length > 0 ? `${gDocs.length} doc${gDocs.length === 1 ? '' : 's'}` : 'No docs'}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex flex-col gap-1 items-end">
                           {canVerifyKyc && (
