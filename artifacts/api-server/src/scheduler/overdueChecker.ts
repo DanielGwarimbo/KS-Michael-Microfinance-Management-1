@@ -181,14 +181,21 @@ async function sendOverdueNotificationForLoan(loan: LoanStub): Promise<void> {
   }
 }
 
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+function getCheckIntervalMs(): number {
+  const raw = process.env.OVERDUE_CHECK_INTERVAL_HOURS;
+  const parsed = raw ? parseFloat(raw) : NaN;
+  const hours = Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
+  return hours * 60 * 60 * 1000;
+}
 
 export function startOverdueScheduler(): void {
-  logger.info("Starting overdue loan scheduler");
+  const intervalMs = getCheckIntervalMs();
+  const intervalHours = intervalMs / (60 * 60 * 1000);
+  logger.info({ intervalHours }, "Starting overdue loan scheduler");
 
   runOverdueCheck();
 
   setInterval(() => {
     runOverdueCheck();
-  }, TWENTY_FOUR_HOURS);
+  }, intervalMs);
 }
