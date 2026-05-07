@@ -20,8 +20,10 @@ export default function ClientDetailPage() {
   const [guarantors, setGuarantors] = useState<Guarantor[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [guarantorDocuments, setGuarantorDocuments] = useState<Record<string, Document[]>>({});
   const [showGuarantorForm, setShowGuarantorForm] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadingGuarantorId, setUploadingGuarantorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (id) loadClientData(); }, [id]);
@@ -36,9 +38,26 @@ export default function ClientDetailPage() {
       ]);
       if (clientRes.error) throw new Error(clientRes.error);
       setClient(clientRes.data);
-      setGuarantors(guarantorsRes.data || []);
       setLoans(loansRes.data || []);
       setDocuments(docsRes.data || []);
+
+      const gList = guarantorsRes.data || [];
+      setGuarantors(gList);
+
+      if (gList.length > 0) {
+        const gDocResults = await Promise.all(
+          gList.map((g) =>
+            api.get<Document[]>(`/documents?entity_type=guarantor_kyc&entity_id=${g.id}`)
+          )
+        );
+        const gDocsMap: Record<string, Document[]> = {};
+        gList.forEach((g, i) => {
+          gDocsMap[g.id] = gDocResults[i].data || [];
+        });
+        setGuarantorDocuments(gDocsMap);
+      } else {
+        setGuarantorDocuments({});
+      }
     } catch {
       addNotification('error', 'Failed to load client');
     } finally {
@@ -159,15 +178,47 @@ export default function ClientDetailPage() {
             </CardHeader>
             {guarantors.length === 0 ? <p className="text-sm text-gray-500 text-center py-4">No guarantors</p> : (
               <div className="space-y-3">
-                {guarantors.map((g) => (
-                  <div key={g.id} className="p-3 rounded-lg border border-gray-100">
-                    <p className="text-sm font-medium">{g.first_name} {g.last_name}</p>
-                    <p className="text-xs text-gray-500">{g.relationship} | {g.phone}</p>
-                    <Badge colorClass={g.kyc_verified ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'} className="mt-1">
-                      {g.kyc_verified ? 'KYC Verified' : 'KYC Pending'}
-                    </Badge>
-                  </div>
-                ))}
+                {guarantors.map((g) => {
+                  const gDocs = guarantorDocuments[g.id] || [];
+                  return (
+                    <div key={g.id} className="p-3 rounded-lg border border-gray-100 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">{g.first_name} {g.last_name}</p>
+                          <p className="text-xs text-gray-500">{g.relationship} | {g.phone}</p>
+                          <Badge colorClass={g.kyc_verified ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'} className="mt-1">
+                            {g.kyc_verified ? 'KYC Verified' : 'KYC Pending'}
+                          </Badge>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => setUploadingGuarantorId(g.id)} title="Upload KYC document for this guarantor">
+                          <Upload className="h-3 w-3 mr-1" /> Doc
+                        </Button>
+                      </div>
+                      {gDocs.length > 0 && (
+                        <div className="space-y-1 pt-1 border-t border-gray-100">
+                          {gDocs.map((doc) => (
+                            <div key={doc.id} className="flex items-center gap-2 text-xs">
+                              <FileText className="h-3 w-3 text-gray-400 shrink-0" />
+                              <span className="flex-1 truncate text-gray-700" title={doc.file_name}>{doc.file_name}</span>
+                              <Badge colorClass={doc.verified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>
+                                {doc.verified ? 'Verified' : 'Unverified'}
+                              </Badge>
+                              <a
+                                href={getDocumentViewUrl(doc)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-teal-600 hover:text-teal-800 shrink-0"
+                                title="View / Download"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -226,6 +277,16 @@ export default function ClientDetailPage() {
           entityType="client_kyc"
           entityId={id}
           onSuccess={() => loadClientData()}
+        />
+      )}
+
+      {uploadingGuarantorId && (
+        <UploadDocumentModal
+          isOpen={true}
+          onClose={() => setUploadingGuarantorId(null)}
+          entityType="guarantor_kyc"
+          entityId={uploadingGuarantorId}
+          onSuccess={() => { loadClientData(); }}
         />
       )}
     </div>
