@@ -6,7 +6,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import { calculateLoan, formatCurrency, FREQUENCY_LABELS } from '../../lib/utils';
+import { calculateLoan, formatCurrency, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS } from '../../lib/utils';
 import { ArrowLeft } from 'lucide-react';
 import type { Client, Loan } from '../../lib/types';
 
@@ -19,6 +19,7 @@ export default function LoanCreatePage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [form, setForm] = useState({
     client_id: preselectedClientId,
+    loan_product_type: '',
     principal: '',
     interest_rate: '10',
     term_months: '12',
@@ -61,6 +62,7 @@ export default function LoanCreatePage() {
         total_payable: calculation.totalPayable,
         installment_amount: calculation.installmentAmount,
         outstanding_balance: calculation.totalPayable,
+        loan_product_type: form.loan_product_type,
         purpose: form.purpose,
       });
       if (error) throw new Error(error);
@@ -89,6 +91,14 @@ export default function LoanCreatePage() {
             <div className="md:col-span-2">
               <Select label="Client" value={form.client_id} onChange={(e) => updateField('client_id', e.target.value)}
                 options={[{ value: '', label: 'Select Client' }, ...clients.map((c) => ({ value: c.id, label: `${c.client_number} - ${c.first_name} ${c.last_name}` }))]}
+                required />
+            </div>
+            <div className="md:col-span-2">
+              <Select label="Loan Product Type" value={form.loan_product_type} onChange={(e) => updateField('loan_product_type', e.target.value)}
+                options={[
+                  { value: '', label: 'Select Loan Product...' },
+                  ...Object.entries(LOAN_PRODUCT_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))
+                ]}
                 required />
             </div>
             <Input label="Principal Amount (USD)" type="number" value={form.principal} onChange={(e) => updateField('principal', e.target.value)} required min="1" step="0.01" />

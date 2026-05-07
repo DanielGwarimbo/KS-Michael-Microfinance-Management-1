@@ -78,6 +78,16 @@ export interface Guarantor {
 
 export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'active' | 'overdue' | 'closed' | 'defaulted';
 
+export type LoanProductType =
+  | 'salary_based'
+  | 'business_msme'
+  | 'agricultural'
+  | 'life_events'
+  | 'product_based'
+  | 'micro_housing'
+  | 'specialized'
+  | '';
+
 export interface Loan {
   id: string;
   loan_number: string;
@@ -88,6 +98,7 @@ export interface Loan {
   repayment_frequency: 'monthly' | 'biweekly' | 'weekly';
   total_payable: number;
   installment_amount: number;
+  loan_product_type: LoanProductType;
   purpose: string;
   status: LoanStatus;
   created_by: string;

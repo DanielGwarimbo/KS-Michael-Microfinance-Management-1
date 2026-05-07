@@ -7,7 +7,7 @@ import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { Plus, Eye } from 'lucide-react';
-import { formatCurrency, LOAN_STATUS_COLORS, FREQUENCY_LABELS } from '../../lib/utils';
+import { formatCurrency, LOAN_STATUS_COLORS, LOAN_PRODUCT_TYPE_LABELS } from '../../lib/utils';
 import type { Loan } from '../../lib/types';
 
 export default function LoanListPage() {
@@ -38,10 +38,10 @@ export default function LoanListPage() {
   const columns = [
     { key: 'loan_number', header: 'Loan No.' },
     { key: 'client', header: 'Client', render: (l: Loan) => l.client ? `${(l.client as any).first_name} ${(l.client as any).last_name}` : '—' },
+    { key: 'loan_product_type', header: 'Product', render: (l: Loan) => l.loan_product_type ? LOAN_PRODUCT_TYPE_LABELS[l.loan_product_type] || l.loan_product_type : '—' },
     { key: 'principal', header: 'Principal', render: (l: Loan) => formatCurrency(l.principal) },
     { key: 'interest_rate', header: 'Rate', render: (l: Loan) => `${l.interest_rate}%` },
     { key: 'term_months', header: 'Term', render: (l: Loan) => `${l.term_months} mo` },
-    { key: 'repayment_frequency', header: 'Frequency', render: (l: Loan) => FREQUENCY_LABELS[l.repayment_frequency] || l.repayment_frequency },
     { key: 'outstanding_balance', header: 'Balance', render: (l: Loan) => formatCurrency(l.outstanding_balance) },
     { key: 'status', header: 'Status', render: (l: Loan) => <Badge colorClass={LOAN_STATUS_COLORS[l.status] || 'bg-gray-100 text-gray-800'}>{l.status}</Badge> },
   ];

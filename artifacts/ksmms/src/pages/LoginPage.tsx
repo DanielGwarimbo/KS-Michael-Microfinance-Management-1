@@ -30,14 +30,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-gray-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-2xl mb-4">
-            <span className="text-white font-bold text-2xl">KS</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-teal-600 rounded-2xl mb-4 shadow-lg">
+            <span className="text-white font-bold text-3xl">KS</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">KSMMS</h1>
-          <p className="text-sm text-gray-500 mt-1">KS Microfinance Management System</p>
+          <h1 className="text-2xl font-bold text-gray-900">KS Michael Finance</h1>
+          <p className="text-sm text-teal-700 font-medium mt-1">(Pvt) Ltd</p>
+          <p className="text-xs text-gray-500 mt-2">Microfinance Management System</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
@@ -56,7 +57,7 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-0"
-                placeholder="you@ksmms.co.zw"
+                placeholder="you@ksmcapital.biz"
               />
             </div>
 
@@ -82,9 +83,17 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Internal staff system. Unauthorized access is prohibited.
-        </p>
+        <div className="text-center mt-6 space-y-1">
+          <p className="text-xs text-gray-400">
+            SSC Center, 1st Floor, Harare, Zimbabwe
+          </p>
+          <p className="text-xs text-gray-400">
+            +263 242 254 905 &bull; info@ksmcapital.biz
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            Internal staff system. Unauthorized access is prohibited.
+          </p>
+        </div>
       </div>
     </div>
   );

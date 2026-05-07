@@ -180,3 +180,44 @@ export const FREQUENCY_LABELS: Record<string, string> = {
   biweekly: 'Bi-Weekly',
   weekly: 'Weekly',
 };
+
+export const LOAN_PRODUCT_TYPE_LABELS: Record<string, string> = {
+  salary_based: 'Salary Based Loan',
+  business_msme: 'Business & MSME Loan',
+  agricultural: 'Agricultural & Value Chain Loan',
+  life_events: 'Life Events Loan',
+  product_based: 'Product-Based Loan',
+  micro_housing: 'Micro-Housing Loan',
+  specialized: 'Specialized Loan',
+};
+
+export const LOAN_PRODUCT_TYPE_DESCRIPTIONS: Record<string, string> = {
+  salary_based: 'Short-term loans for formally employed individuals (Civil Servants & Private Sector)',
+  business_msme: 'Working capital financing for micro, small, and medium enterprises',
+  agricultural: 'Financing for farming inputs, irrigation, equipment, livestock projects',
+  life_events: 'Funding for education fees, medical expenses, and funeral costs',
+  product_based: 'Credit facilities to acquire furniture, farming inputs, and household assets',
+  micro_housing: 'Loans for incremental housing construction, renovations, and land acquisition',
+  specialized: "Funding for driver's licence, professional certifications, and trade qualifications",
+};
+
+export const ZIMBABWE_PROVINCES = [
+  'Harare',
+  'Bulawayo',
+  'Manicaland',
+  'Mashonaland Central',
+  'Mashonaland East',
+  'Mashonaland West',
+  'Masvingo',
+  'Matabeleland North',
+  'Matabeleland South',
+  'Midlands',
+];
+
+export const COMPANY_INFO = {
+  name: 'KS Michael Finance (Pvt) Ltd',
+  address: 'SSC Center, 1st Floor, Eastwing\nCnr Julius Nyerere Way & Sam Nujoma Street\nHarare, Zimbabwe',
+  phone: '+263 242 254 905',
+  email: 'info@ksmcapital.biz',
+  tagline: 'Accessible, Responsible & Innovative Financial Solutions',
+};

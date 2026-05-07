@@ -7,7 +7,7 @@ import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, generateRepaymentSchedule } from '../../lib/utils';
+import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
 import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt } from 'lucide-react';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
 
@@ -127,7 +127,13 @@ export default function LoanDetailPage() {
               <div><p className="text-gray-500">Total Paid</p><p className="font-bold text-lg text-green-700">{formatCurrency(loan.total_paid)}</p></div>
               <div><p className="text-gray-500">Outstanding</p><p className="font-bold text-lg text-red-700">{formatCurrency(loan.outstanding_balance)}</p></div>
             </div>
-            {loan.purpose && <p className="mt-4 text-sm text-gray-600"><span className="font-medium">Purpose:</span> {loan.purpose}</p>}
+            {loan.loan_product_type && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">Loan Product</p>
+                <p className="text-sm font-semibold text-teal-700">{LOAN_PRODUCT_TYPE_LABELS[loan.loan_product_type] || loan.loan_product_type}</p>
+              </div>
+            )}
+            {loan.purpose && <p className="mt-3 text-sm text-gray-600"><span className="font-medium">Purpose:</span> {loan.purpose}</p>}
           </Card>
 
           {schedule.length > 0 && (

@@ -102,6 +102,7 @@ export const loans = pgTable("loans", {
   repayment_frequency: text("repayment_frequency").notNull().default("monthly"),
   total_payable: doublePrecision("total_payable").notNull(),
   installment_amount: doublePrecision("installment_amount").notNull(),
+  loan_product_type: text("loan_product_type").notNull().default(""),
   purpose: text("purpose").notNull().default(""),
   status: text("status").notNull().default("pending"),
   created_by: uuid("created_by")
