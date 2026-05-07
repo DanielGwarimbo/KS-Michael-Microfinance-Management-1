@@ -167,7 +167,7 @@ export interface Document {
   id: string;
   entity_type: 'client_kyc' | 'guarantor_kyc' | 'loan' | 'collateral';
   entity_id: string;
-  document_type: 'national_id' | 'passport' | 'proof_of_residence' | 'payslip' | 'contract' | 'collateral' | 'other';
+  document_type: 'national_id' | 'passport' | 'proof_of_residence' | 'proof_of_employment' | 'payslip' | 'bank_statement' | 'guarantor_document' | 'collateral_insurance' | 'disbursement_form' | 'other';
   file_name: string;
   file_path: string;
   file_size: number;

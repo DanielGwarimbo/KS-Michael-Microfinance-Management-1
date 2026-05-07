@@ -75,7 +75,7 @@ router.get("/documents", async (req, res) => {
  *   file          — the file to upload (required)
  *   entity_type   — 'client_kyc' | 'guarantor_kyc' | 'loan' | 'collateral'
  *   entity_id     — UUID of the owning entity (client, guarantor, or loan)
- *   document_type — 'national_id' | 'passport' | 'proof_of_residence' | ...
+ *   document_type — 'national_id' | 'passport' | 'proof_of_residence' | 'proof_of_employment' | 'payslip' | 'bank_statement' | 'guarantor_document' | 'collateral_insurance' | 'disbursement_form' | 'other'
  */
 router.post("/documents", upload.single("file"), async (req, res) => {
   try {

@@ -9,9 +9,12 @@ const DOCUMENT_TYPES = [
   { value: 'national_id', label: 'National ID' },
   { value: 'passport', label: 'Passport' },
   { value: 'proof_of_residence', label: 'Proof of Residence' },
+  { value: 'proof_of_employment', label: 'Proof of Employment' },
   { value: 'payslip', label: 'Payslip' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'collateral', label: 'Collateral Document' },
+  { value: 'bank_statement', label: 'Bank Statement' },
+  { value: 'guarantor_document', label: 'Guarantor Document' },
+  { value: 'collateral_insurance', label: 'Collateral & Insurance' },
+  { value: 'disbursement_form', label: 'Disbursement Form' },
   { value: 'other', label: 'Other' },
 ];
 
