@@ -25,80 +25,132 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" />, path: '/dashboard', roles: ['admin', 'manager', 'loan_officer', 'cashier', 'accountant'] },
-  { label: 'Clients', icon: <Users className="h-5 w-5" />, path: '/clients', roles: ['admin', 'manager', 'loan_officer'] },
-  { label: 'Loans', icon: <HandCoins className="h-5 w-5" />, path: '/loans', roles: ['admin', 'manager', 'loan_officer', 'cashier'] },
-  { label: 'Repayments', icon: <Receipt className="h-5 w-5" />, path: '/repayments', roles: ['admin', 'manager', 'cashier', 'accountant'] },
-  { label: 'Users', icon: <UserCog className="h-5 w-5" />, path: '/users', roles: ['admin'] },
-  { label: 'Accounting', icon: <Calculator className="h-5 w-5" />, path: '/accounting', roles: ['admin', 'manager', 'accountant'] },
-  { label: 'Reports', icon: <FileBarChart className="h-5 w-5" />, path: '/reports', roles: ['admin', 'manager', 'accountant'] },
-  { label: 'Documents', icon: <FileText className="h-5 w-5" />, path: '/documents', roles: ['admin', 'manager', 'loan_officer'] },
-  { label: 'Audit Log', icon: <Shield className="h-5 w-5" />, path: '/audit', roles: ['admin', 'manager'] },
+  { label: 'Dashboard',   icon: <LayoutDashboard className="h-[18px] w-[18px]" />, path: '/dashboard',  roles: ['admin', 'manager', 'loan_officer', 'cashier', 'accountant'] },
+  { label: 'Clients',     icon: <Users           className="h-[18px] w-[18px]" />, path: '/clients',    roles: ['admin', 'manager', 'loan_officer'] },
+  { label: 'Loans',       icon: <HandCoins       className="h-[18px] w-[18px]" />, path: '/loans',      roles: ['admin', 'manager', 'loan_officer', 'cashier'] },
+  { label: 'Repayments',  icon: <Receipt         className="h-[18px] w-[18px]" />, path: '/repayments', roles: ['admin', 'manager', 'cashier', 'accountant'] },
+  { label: 'Users',       icon: <UserCog         className="h-[18px] w-[18px]" />, path: '/users',      roles: ['admin'] },
+  { label: 'Accounting',  icon: <Calculator      className="h-[18px] w-[18px]" />, path: '/accounting', roles: ['admin', 'manager', 'accountant'] },
+  { label: 'Reports',     icon: <FileBarChart    className="h-[18px] w-[18px]" />, path: '/reports',    roles: ['admin', 'manager', 'accountant'] },
+  { label: 'Documents',   icon: <FileText        className="h-[18px] w-[18px]" />, path: '/documents',  roles: ['admin', 'manager', 'loan_officer'] },
+  { label: 'Audit Log',   icon: <Shield          className="h-[18px] w-[18px]" />, path: '/audit',      roles: ['admin', 'manager'] },
 ];
+
+function getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { roleName } = useAuth();
+  const { roleName, profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const visibleItems = navItems.filter((item) => roleName && item.roles.includes(roleName));
+  const visibleItems = navItems.filter(item => roleName && item.roles.includes(roleName));
 
   return (
     <aside
       className={classNames(
-        'h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
+        'h-screen bg-brand-950 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0',
+        collapsed ? 'w-[68px]' : 'w-64'
       )}
     >
-      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+      {/* Logo / Brand */}
+      <div className={classNames(
+        'flex items-center h-16 border-b border-white/[0.07] flex-shrink-0',
+        collapsed ? 'justify-center px-2' : 'justify-between px-4'
+      )}>
         {!collapsed && (
-          <div className="flex items-center gap-2 min-w-0">
-            <img src="/logo.png" alt="KS Michael Finance" className="h-9 w-9 object-contain rounded" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10">
+              <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-cover" />
+            </div>
             <div className="min-w-0">
-              <p className="font-bold text-brand-700 text-xs leading-tight">KS Michael Finance</p>
-              <p className="text-gold-600 text-[10px] font-semibold leading-tight">(Pvt) Ltd</p>
+              <p className="font-display font-bold text-white text-[13px] leading-tight tracking-tight">KS Michael Finance</p>
+              <p className="text-gold-400 text-[10px] font-medium leading-tight tracking-wide">(Pvt) Ltd</p>
             </div>
           </div>
         )}
         {collapsed && (
-          <img src="/logo.png" alt="KSM" className="h-8 w-8 object-contain rounded mx-auto" />
+          <div className="h-8 w-8 rounded-lg overflow-hidden ring-1 ring-white/10">
+            <img src="/logo.png" alt="KSM" className="h-full w-full object-cover" />
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          className={classNames(
+            'p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all duration-150 flex-shrink-0',
+            collapsed && 'absolute left-[68px] top-4 -translate-x-1/2 bg-brand-950 border border-white/10 shadow-lg z-10'
+          )}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed
+            ? <ChevronRight className="h-3.5 w-3.5" />
+            : <ChevronLeft  className="h-3.5 w-3.5" />
+          }
         </button>
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {visibleItems.map((item) => {
+      {/* Navigation */}
+      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
+        {!collapsed && (
+          <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest px-3 pb-2 pt-1">Navigation</p>
+        )}
+        {visibleItems.map(item => {
           const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={classNames(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-brand-50 text-brand-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
               title={collapsed ? item.label : undefined}
+              className={classNames(
+                'w-full flex items-center gap-3 rounded-xl text-[13px] font-medium transition-all duration-150 group relative',
+                collapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
+                isActive
+                  ? 'bg-gold-400/15 text-gold-400'
+                  : 'text-white/55 hover:text-white/90 hover:bg-white/[0.07]'
+              )}
             >
-              <span className={isActive ? 'text-brand-600' : 'text-gray-400'}>{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gold-400 rounded-r-full" />
+              )}
+              <span className={classNames(
+                'flex-shrink-0 transition-colors',
+                isActive ? 'text-gold-400' : 'text-white/40 group-hover:text-white/70'
+              )}>
+                {item.icon}
+              </span>
+              {!collapsed && (
+                <span className="font-display truncate">{item.label}</span>
+              )}
             </button>
           );
         })}
       </nav>
 
-      {!collapsed && roleName && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="px-3 py-2 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500">Role</p>
-            <p className="text-sm font-medium text-gray-900">{ROLE_LABELS[roleName] || roleName}</p>
+      {/* User / Role Footer */}
+      {!collapsed && profile && (
+        <div className="flex-shrink-0 p-3 border-t border-white/[0.07]">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/[0.05]">
+            <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-bold font-display">
+                {getInitials(profile.full_name)}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-xs font-semibold truncate leading-tight">{profile.full_name}</p>
+              <p className="text-gold-500 text-[10px] font-medium leading-tight mt-0.5">
+                {roleName ? ROLE_LABELS[roleName] : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {collapsed && profile && (
+        <div className="flex-shrink-0 p-2 border-t border-white/[0.07] flex justify-center">
+          <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center" title={profile.full_name}>
+            <span className="text-white text-xs font-bold font-display">
+              {getInitials(profile.full_name)}
+            </span>
           </div>
         </div>
       )}

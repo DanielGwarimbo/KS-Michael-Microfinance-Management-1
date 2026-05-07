@@ -90,15 +90,15 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="font-display text-2xl font-extrabold text-gray-900 tracking-tight">
             Welcome, {profile?.full_name?.split(' ')[0]}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-400 mt-1 font-medium">
             {roleName ? ROLE_DESCRIPTIONS[roleName] : 'Microfinance Management System'}
           </p>
         </div>
         {roleName && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold font-display tracking-wide bg-brand-50 text-brand-600 border border-brand-100">
             {ROLE_LABELS[roleName] ?? roleName}
           </span>
         )}
@@ -144,14 +144,17 @@ export default function DashboardPage() {
         {/* Loan Officers see 2 stats — fill remaining space with a quick-action card */}
         {!canSeeFinancials && canSeeClients && canSeeLoans && (
           <div
-            className="bg-brand-50 border border-brand-200 rounded-xl p-4 cursor-pointer hover:bg-brand-100 transition-colors"
+            className="bg-white border-t-2 border-t-brand-500 border border-gray-100 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
             onClick={() => navigate('/loans/new')}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <HandCoins className="h-5 w-5 text-brand-600" />
-              <span className="text-sm font-medium text-brand-700">New Loan Application</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Quick Action</span>
+              <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-sm">
+                <HandCoins className="h-5 w-5 text-white" />
+              </div>
             </div>
-            <p className="text-xs text-brand-600">Click to submit a new loan application for a client</p>
+            <p className="font-display text-[15px] font-bold text-gray-900 mt-1">New Loan Application</p>
+            <p className="text-xs text-gray-400 mt-1">Submit a new loan application</p>
           </div>
         )}
         {/* Accountants don't see Loans/Clients — show Disbursed as a 4th card */}
@@ -170,79 +173,94 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {canSeeLoans && (
             <div
-              className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer hover:bg-red-100 transition-colors"
+              className="bg-white border border-gray-100 border-t-2 border-t-red-500 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
               onClick={() => navigate('/loans?status=overdue')}
             >
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                <span className="text-sm font-medium text-red-700">Overdue Loans</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Overdue</span>
+                <div className="h-9 w-9 rounded-xl bg-red-50 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-red-700 mt-2">{stats.overdueLoans}</p>
+              <p className="font-display text-3xl font-extrabold text-red-600 leading-none">{stats.overdueLoans}</p>
+              <p className="text-xs text-gray-400 mt-1.5">Loans requiring attention</p>
             </div>
           )}
 
           {canApproveLoans && (
             <div
-              className="bg-amber-50 border border-amber-200 rounded-xl p-4 cursor-pointer hover:bg-amber-100 transition-colors"
+              className="bg-white border border-gray-100 border-t-2 border-t-amber-400 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
               onClick={() => navigate('/loans?status=pending')}
             >
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700">Pending Approval</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Pending</span>
+                <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-amber-700 mt-2">{stats.pendingLoans}</p>
+              <p className="font-display text-3xl font-extrabold text-amber-600 leading-none">{stats.pendingLoans}</p>
+              <p className="text-xs text-gray-400 mt-1.5">Awaiting your approval</p>
             </div>
           )}
 
-          {/* Loan officers: show pending in their context (they submitted, awaiting decision) */}
           {hasRole(['loan_officer']) && (
             <div
-              className="bg-amber-50 border border-amber-200 rounded-xl p-4 cursor-pointer hover:bg-amber-100 transition-colors"
+              className="bg-white border border-gray-100 border-t-2 border-t-amber-400 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
               onClick={() => navigate('/loans?status=pending')}
             >
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700">Awaiting Approval</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Pending</span>
+                <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-amber-700 mt-2">{stats.pendingLoans}</p>
+              <p className="font-display text-3xl font-extrabold text-amber-600 leading-none">{stats.pendingLoans}</p>
+              <p className="text-xs text-gray-400 mt-1.5">Awaiting manager approval</p>
             </div>
           )}
 
           {canSeeFinancials && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-sm font-medium text-green-700">Total Disbursed</span>
+            <div className="bg-white border border-gray-100 border-t-2 border-t-emerald-500 rounded-2xl p-5 shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Disbursed</span>
+                <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-green-700 mt-2">{formatCurrency(stats.totalDisbursed)}</p>
+              <p className="font-display text-xl font-extrabold text-emerald-700 leading-none">{formatCurrency(stats.totalDisbursed)}</p>
+              <p className="text-xs text-gray-400 mt-1.5">Total funds disbursed</p>
             </div>
           )}
 
-          {/* Cashier quick action: record repayment */}
           {hasRole(['cashier']) && !canApproveLoans && (
             <div
-              className="bg-brand-50 border border-brand-200 rounded-xl p-4 cursor-pointer hover:bg-brand-100 transition-colors"
+              className="bg-white border border-gray-100 border-t-2 border-t-brand-500 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
               onClick={() => navigate('/repayments/new')}
             >
-              <div className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-brand-600" />
-                <span className="text-sm font-medium text-brand-700">Record Repayment</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Quick Action</span>
+                <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
+                  <Receipt className="h-4 w-4 text-brand-600" />
+                </div>
               </div>
-              <p className="text-xs text-brand-600 mt-2">Click to record a loan repayment</p>
+              <p className="font-display text-[15px] font-bold text-gray-900">Record Repayment</p>
+              <p className="text-xs text-gray-400 mt-1">Click to record a payment</p>
             </div>
           )}
 
-          {/* Accountant quick access */}
           {hasRole(['accountant']) && (
             <div
-              className="bg-brand-50 border border-brand-200 rounded-xl p-4 cursor-pointer hover:bg-brand-100 transition-colors"
+              className="bg-white border border-gray-100 border-t-2 border-t-brand-500 rounded-2xl p-5 cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 shadow-card"
               onClick={() => navigate('/accounting')}
             >
-              <div className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-brand-600" />
-                <span className="text-sm font-medium text-brand-700">Accounting Entries</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">Quick Access</span>
+                <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
+                  <Calculator className="h-4 w-4 text-brand-600" />
+                </div>
               </div>
-              <p className="text-xs text-brand-600 mt-2">View all disbursements and repayments</p>
+              <p className="font-display text-[15px] font-bold text-gray-900">Accounting Entries</p>
+              <p className="text-xs text-gray-400 mt-1">View disbursements &amp; repayments</p>
             </div>
           )}
         </div>
@@ -253,26 +271,26 @@ export default function DashboardPage() {
         {/* Recent Loan Applications — shown to all who can see loans */}
         {canSeeLoans && (
           <Card>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Recent Loan Applications</h3>
+            <h3 className="font-display text-[15px] font-bold text-gray-900 mb-4 tracking-tight">Recent Loan Applications</h3>
             {stats.recentLoans.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No recent loans</p>
+              <p className="text-sm text-gray-400 text-center py-6">No recent loans</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {stats.recentLoans.map((loan) => (
                   <div
                     key={loan.id}
                     onClick={() => navigate(`/loans/${loan.id}`)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/80 cursor-pointer transition-all duration-150 group"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{loan.loan_number}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-semibold text-gray-900 font-display group-hover:text-brand-600 transition-colors">{loan.loan_number}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
                         {loan.client?.first_name} {loan.client?.last_name} &middot; {formatDate(loan.created_at)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-700">{formatCurrency(loan.principal)}</span>
-                      <Badge colorClass={LOAN_STATUS_COLORS[loan.status] || 'bg-gray-100 text-gray-800'}>
+                      <span className="text-sm font-bold text-gray-700 font-display">{formatCurrency(loan.principal)}</span>
+                      <Badge colorClass={LOAN_STATUS_COLORS[loan.status] || 'bg-gray-100 text-gray-600'}>
                         {loan.status}
                       </Badge>
                     </div>
@@ -283,23 +301,22 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {/* Recent Repayments — shown to all who can see repayments */}
         {canSeeRepayments && (
           <Card>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Recent Repayments</h3>
+            <h3 className="font-display text-[15px] font-bold text-gray-900 mb-4 tracking-tight">Recent Repayments</h3>
             {stats.recentRepayments.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No recent repayments</p>
+              <p className="text-sm text-gray-400 text-center py-6">No recent repayments</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {stats.recentRepayments.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100">
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{r.receipt_number}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-semibold text-gray-900 font-display">{r.receipt_number}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
                         {r.loan?.loan_number} &middot; {r.loan?.client?.first_name} {r.loan?.client?.last_name} &middot; {formatDate(r.payment_date)}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-green-700">{formatCurrency(r.amount)}</span>
+                    <span className="text-sm font-bold text-emerald-600 font-display">{formatCurrency(r.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -307,25 +324,24 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {/* Loan officers only see one table — fill with a quick guidance card */}
         {canSeeLoans && !canSeeRepayments && (
           <Card>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Your Responsibilities</h3>
-            <div className="space-y-3">
+            <h3 className="font-display text-[15px] font-bold text-gray-900 mb-4 tracking-tight">Your Responsibilities</h3>
+            <div className="space-y-2">
               {[
-                { icon: <Users className="h-4 w-4 text-blue-600" />, label: 'Register Clients', desc: 'Add new individual or business clients with KYC', path: '/clients' },
-                { icon: <HandCoins className="h-4 w-4 text-teal-600" />, label: 'Submit Loan Applications', desc: 'Apply for loans on behalf of clients', path: '/loans/new' },
-                { icon: <FileText className="h-4 w-4 text-purple-600" />, label: 'Upload Documents', desc: 'Upload KYC and loan documents for verification', path: '/documents' },
+                { icon: <Users className="h-4 w-4 text-blue-500" />, iconBg: 'bg-blue-50', label: 'Register Clients', desc: 'Add new individual or business clients with KYC', path: '/clients' },
+                { icon: <HandCoins className="h-4 w-4 text-brand-600" />, iconBg: 'bg-brand-50', label: 'Submit Loan Applications', desc: 'Apply for loans on behalf of clients', path: '/loans/new' },
+                { icon: <FileText className="h-4 w-4 text-purple-500" />, iconBg: 'bg-purple-50', label: 'Upload Documents', desc: 'Upload KYC and loan documents for verification', path: '/documents' },
               ].map((item) => (
                 <div
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/80 cursor-pointer transition-all duration-150 group"
                 >
-                  <div className="mt-0.5">{item.icon}</div>
+                  <div className={`h-9 w-9 rounded-lg ${item.iconBg} flex items-center justify-center flex-shrink-0`}>{item.icon}</div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500">{item.desc}</p>
+                    <p className="text-sm font-semibold text-gray-900 font-display group-hover:text-brand-600 transition-colors">{item.label}</p>
+                    <p className="text-xs text-gray-400">{item.desc}</p>
                   </div>
                 </div>
               ))}

@@ -10,7 +10,7 @@ export default function Card({ children, className, padding = true }: CardProps)
   return (
     <div
       className={classNames(
-        'bg-white rounded-xl border border-gray-200 shadow-sm',
+        'bg-white rounded-2xl border border-gray-100 shadow-card',
         padding && 'p-6',
         className
       )}
@@ -21,9 +21,13 @@ export default function Card({ children, className, padding = true }: CardProps)
 }
 
 export function CardHeader({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={classNames('mb-4', className)}>{children}</div>;
+  return <div className={classNames('mb-5', className)}>{children}</div>;
 }
 
 export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={classNames('text-lg font-semibold text-gray-900', className)}>{children}</h3>;
+  return (
+    <h3 className={classNames('font-display text-[15px] font-bold text-gray-900 tracking-tight', className)}>
+      {children}
+    </h3>
+  );
 }
