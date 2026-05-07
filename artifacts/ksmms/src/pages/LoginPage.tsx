@@ -34,7 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src="/logo.png" alt="KS Michael Finance" className="w-60 h-60 object-contain mx-auto mb-5" />
-          <h1 className="text-3xl font-bold text-white tracking-tight">KS Michael&nbsp;&nbsp;&nbsp;Finance</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">KS Michael Finance</h1>
           <p className="text-gold-400 font-semibold text-sm mt-1">(Pvt) Ltd</p>
           <p className="text-brand-200 text-xs mt-2 tracking-wide uppercase">Microfinance Management System</p>
         </div>
