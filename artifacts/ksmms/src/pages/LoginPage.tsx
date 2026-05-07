@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-28 h-28 bg-white rounded-2xl mb-5 shadow-xl p-2">
+          <div className="inline-flex items-center justify-center w-48 h-48 bg-white rounded-2xl mb-5 shadow-xl p-3">
             <img src="/logo.png" alt="KS Michael Finance" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">KS Michael Finance</h1>
