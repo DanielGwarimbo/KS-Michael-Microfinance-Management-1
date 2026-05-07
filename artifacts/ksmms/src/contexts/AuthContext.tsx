@@ -18,7 +18,7 @@ interface AuthContextType {
   session: null;
   loading: boolean;
   roleName: RoleName | null;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null; user: AuthUser | null }>;
   signOut: () => Promise<void>;
   hasRole: (roles: RoleName[]) => boolean;
   refreshProfile: () => Promise<void>;
@@ -53,11 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchMe().finally(() => setLoading(false));
   }, [fetchMe]);
 
-  const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
+  const signIn = async (email: string, password: string): Promise<{ error: string | null; user: AuthUser | null }> => {
     const { data, error } = await api.post<{ user: AuthUser }>('/auth/login', { email, password });
-    if (error) return { error };
+    if (error) return { error, user: null };
     if (data?.user) setUser(data.user);
-    return { error: null };
+    return { error: null, user: data?.user ?? null };
   };
 
   const signOut = async () => {

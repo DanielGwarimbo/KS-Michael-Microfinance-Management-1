@@ -1,22 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/ui/Button';
+import type { RoleName } from '../lib/types';
+
+const ROLE_HOME: Record<RoleName, string> = {
+  admin:        '/dashboard',
+  manager:      '/dashboard',
+  loan_officer: '/dashboard',
+  cashier:      '/dashboard',
+  accountant:   '/dashboard',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
+
+  // Redirect already-authenticated users away from login
+  useEffect(() => {
+    if (!authLoading && user) {
+      const role = user.role_name as RoleName;
+      navigate(ROLE_HOME[role] ?? '/dashboard', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error, user: loggedInUser } = await signIn(email, password);
 
     if (error) {
       addNotification('error', error);
@@ -24,10 +41,21 @@ export default function LoginPage() {
       return;
     }
 
-    addNotification('success', 'Welcome back!');
-    navigate('/dashboard');
+    const role = loggedInUser?.role_name as RoleName | undefined;
+    const destination = role ? (ROLE_HOME[role] ?? '/dashboard') : '/dashboard';
+    addNotification('success', `Welcome back, ${loggedInUser?.full_name ?? ''}!`);
+    navigate(destination, { replace: true });
     setLoading(false);
   };
+
+  // Don't render the form while checking existing session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600">
+        <div className="animate-spin h-10 w-10 border-4 border-white border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 flex items-center justify-center px-4">
