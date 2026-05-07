@@ -110,6 +110,7 @@ export default function UserListPage() {
       <Badge colorClass={u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>
     )},
     { key: 'created_at', header: 'Created', render: (u: UserProfile) => formatDate(u.created_at) },
+    { key: 'updated_at', header: 'Updated', render: (u: UserProfile) => formatDate(u.updated_at) },
   ];
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
