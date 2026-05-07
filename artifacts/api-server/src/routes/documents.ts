@@ -190,7 +190,7 @@ router.delete(
       await insertAuditLog({
         user_id: req.user!.id,
         user_role: req.user!.role_name,
-        action: "document_deleted",
+        action: "delete",
         module: "documents",
         entity_id: docId,
         entity_type: "document",
