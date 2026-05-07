@@ -25,6 +25,23 @@ declare global {
   }
 }
 
+type RoleName = "admin" | "manager" | "loan_officer" | "cashier" | "accountant";
+
+/**
+ * Middleware factory — requires the authenticated user to have one of the allowed roles.
+ * Must be used AFTER requireAuth in the middleware chain.
+ */
+export function requireRole(...allowedRoles: RoleName[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const roleName = req.user?.role_name as RoleName | undefined;
+    if (!roleName || !allowedRoles.includes(roleName)) {
+      res.status(403).json({ error: "Insufficient permissions" });
+      return;
+    }
+    next();
+  };
+}
+
 export async function requireAuth(
   req: Request,
   res: Response,

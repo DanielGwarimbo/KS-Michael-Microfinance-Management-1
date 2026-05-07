@@ -8,8 +8,8 @@ import {
   accountingEntries,
   userProfiles,
 } from "@workspace/db/schema";
-import { eq, inArray, desc, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { eq, desc, sql } from "drizzle-orm";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 router.use(requireAuth);
@@ -20,6 +20,7 @@ async function nextReceiptNumber() {
   return `RCP-${String(n).padStart(5, "0")}`;
 }
 
+// All roles can view repayments
 router.get("/repayments", async (req, res) => {
   try {
     const rows = await db
@@ -49,8 +50,10 @@ router.get("/repayments", async (req, res) => {
     res.json(
       rows.map((r) => ({
         ...r,
-        loan: { loan_number: r.loan_number },
-        client: { first_name: r.client_first_name, last_name: r.client_last_name },
+        loan: {
+          loan_number: r.loan_number,
+          client: { first_name: r.client_first_name, last_name: r.client_last_name },
+        },
         receiver: { full_name: r.receiver_name },
       })),
     );
@@ -60,97 +63,106 @@ router.get("/repayments", async (req, res) => {
   }
 });
 
-router.post("/repayments", async (req, res) => {
-  try {
-    const { loan_id, amount, payment_method, payment_date, notes, principal_amount, interest_amount } = req.body;
+// Only admin/cashier can record repayments
+router.post(
+  "/repayments",
+  requireRole("admin", "cashier"),
+  async (req, res) => {
+    try {
+      const { loan_id, amount, payment_method, payment_date, notes, principal_amount, interest_amount } = req.body;
 
-    const loanRows = await db.select().from(loans).where(eq(loans.id, loan_id)).limit(1);
-    if (!loanRows.length) {
-      res.status(404).json({ error: "Loan not found" });
-      return;
-    }
-    const loan = loanRows[0];
+      const loanRows = await db.select().from(loans).where(eq(loans.id, loan_id)).limit(1);
+      if (!loanRows.length) {
+        res.status(404).json({ error: "Loan not found" });
+        return;
+      }
+      const loan = loanRows[0];
 
-    const amt = Number(amount);
-    const principal = Number(principal_amount);
-    const interest = Number(interest_amount);
+      if (!["active", "overdue"].includes(loan.status)) {
+        res.status(400).json({ error: "Repayments can only be recorded against active or overdue loans" });
+        return;
+      }
 
-    const receipt_number = await nextReceiptNumber();
+      const amt = Number(amount);
+      const principal = Number(principal_amount);
+      const interest = Number(interest_amount);
 
-    const [repayment] = await db
-      .insert(repayments)
-      .values({
-        loan_id,
-        receipt_number,
-        amount: amt,
-        principal_amount: principal,
-        interest_amount: interest,
-        payment_date,
-        payment_method,
-        received_by: req.user!.id,
-        notes: notes || "",
-      })
-      .returning();
+      if (amt <= 0) {
+        res.status(400).json({ error: "Amount must be greater than zero" });
+        return;
+      }
+      if (amt > Number(loan.outstanding_balance)) {
+        res.status(400).json({ error: "Amount exceeds outstanding balance" });
+        return;
+      }
 
-    const newTotalPaid = Number(loan.total_paid) + amt;
-    const newOutstanding = Math.max(0, Number(loan.total_payable) - newTotalPaid);
-    const newStatus = newOutstanding <= 0 ? "closed" : loan.status;
+      const receipt_number = await nextReceiptNumber();
 
-    await db
-      .update(loans)
-      .set({
-        total_paid: newTotalPaid,
-        outstanding_balance: newOutstanding,
-        status: newStatus,
-        updated_at: new Date(),
-      })
-      .where(eq(loans.id, loan_id));
-
-    await db.insert(accountingEntries).values([
-      {
-        transaction_type: "repayment",
-        reference_id: repayment.id,
-        reference_type: "repayment",
-        amount: principal,
-        description: `Principal repayment - ${loan.loan_number}`,
-        created_by: req.user!.id,
-      },
-      {
-        transaction_type: "interest_earned",
-        reference_id: repayment.id,
-        reference_type: "repayment",
-        amount: interest,
-        description: `Interest earned - ${loan.loan_number}`,
-        created_by: req.user!.id,
-      },
-    ]);
-
-    const pendingSchedules = await db
-      .select()
-      .from(repaymentSchedules)
-      .where(eq(repaymentSchedules.loan_id, loan_id))
-      .orderBy(repaymentSchedules.installment_number);
-
-    const nextPending = pendingSchedules.find((s) => s.status === "pending" || s.status === "overdue");
-    if (nextPending) {
-      const newAmountPaid = Number(nextPending.amount_paid) + amt;
-      const scheduleStatus =
-        newAmountPaid >= Number(nextPending.amount_due) ? "paid" : "partial";
-      await db
-        .update(repaymentSchedules)
-        .set({
-          amount_paid: newAmountPaid,
-          paid_date: scheduleStatus === "paid" ? payment_date : null,
-          status: scheduleStatus,
+      const [repayment] = await db
+        .insert(repayments)
+        .values({
+          loan_id,
+          receipt_number,
+          amount: amt,
+          principal_amount: principal,
+          interest_amount: interest,
+          payment_date,
+          payment_method,
+          received_by: req.user!.id,
+          notes: notes || "",
         })
-        .where(eq(repaymentSchedules.id, nextPending.id));
-    }
+        .returning();
 
-    res.json(repayment);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to record payment" });
-  }
-});
+      const newTotalPaid = Number(loan.total_paid) + amt;
+      const newOutstanding = Math.max(0, Number(loan.total_payable) - newTotalPaid);
+      const newStatus = newOutstanding <= 0 ? "closed" : loan.status;
+
+      await db
+        .update(loans)
+        .set({ total_paid: newTotalPaid, outstanding_balance: newOutstanding, status: newStatus, updated_at: new Date() })
+        .where(eq(loans.id, loan_id));
+
+      await db.insert(accountingEntries).values([
+        {
+          transaction_type: "repayment",
+          reference_id: repayment.id,
+          reference_type: "repayment",
+          amount: principal,
+          description: `Principal repayment - ${loan.loan_number}`,
+          created_by: req.user!.id,
+        },
+        {
+          transaction_type: "interest_earned",
+          reference_id: repayment.id,
+          reference_type: "repayment",
+          amount: interest,
+          description: `Interest earned - ${loan.loan_number}`,
+          created_by: req.user!.id,
+        },
+      ]);
+
+      const pendingSchedules = await db
+        .select()
+        .from(repaymentSchedules)
+        .where(eq(repaymentSchedules.loan_id, loan_id))
+        .orderBy(repaymentSchedules.installment_number);
+
+      const nextPending = pendingSchedules.find((s) => s.status === "pending" || s.status === "overdue");
+      if (nextPending) {
+        const newAmountPaid = Number(nextPending.amount_paid) + amt;
+        const scheduleStatus = newAmountPaid >= Number(nextPending.amount_due) ? "paid" : "partial";
+        await db
+          .update(repaymentSchedules)
+          .set({ amount_paid: newAmountPaid, paid_date: scheduleStatus === "paid" ? payment_date : null, status: scheduleStatus })
+          .where(eq(repaymentSchedules.id, nextPending.id));
+      }
+
+      res.json(repayment);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to record payment" });
+    }
+  },
+);
 
 export default router;

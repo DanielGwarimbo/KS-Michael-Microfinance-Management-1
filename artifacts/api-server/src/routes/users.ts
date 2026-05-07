@@ -1,14 +1,15 @@
 import { Router } from "express";
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { userProfiles, roles } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 router.use(requireAuth);
 
-router.get("/users", async (req, res) => {
+// Only admins can list all users
+router.get("/users", requireRole("admin"), async (req, res) => {
   try {
     const rows = await db
       .select({
@@ -38,9 +39,10 @@ router.get("/users", async (req, res) => {
   }
 });
 
-router.post("/users", async (req, res) => {
+// Only admins can create users
+router.post("/users", requireRole("admin"), async (req, res) => {
   try {
-    const { email, password, full_name, role_id, phone } = req.body;
+    const { email, password, full_name, role_id, phone, is_active } = req.body;
     if (!password) {
       res.status(400).json({ error: "Password is required" });
       return;
@@ -54,6 +56,7 @@ router.post("/users", async (req, res) => {
         full_name,
         role_id,
         phone: phone || "",
+        is_active: is_active !== false,
       })
       .returning();
 
@@ -69,12 +72,18 @@ router.post("/users", async (req, res) => {
   }
 });
 
-router.put("/users/:id/toggle-active", async (req, res) => {
+// Only admins can toggle user active status (and not their own)
+router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) => {
   try {
+    const userId = req.params.id as string;
+    if (userId === req.user!.id) {
+      res.status(400).json({ error: "Cannot deactivate your own account" });
+      return;
+    }
     const existing = await db
       .select({ is_active: userProfiles.is_active })
       .from(userProfiles)
-      .where(eq(userProfiles.id, req.params.id))
+      .where(eq(userProfiles.id, userId))
       .limit(1);
 
     if (!existing.length) {
@@ -85,7 +94,7 @@ router.put("/users/:id/toggle-active", async (req, res) => {
     const [updated] = await db
       .update(userProfiles)
       .set({ is_active: !existing[0].is_active, updated_at: new Date() })
-      .where(eq(userProfiles.id, req.params.id))
+      .where(eq(userProfiles.id, userId))
       .returning();
 
     const { password_hash: _, ...safe } = updated;
@@ -96,14 +105,9 @@ router.put("/users/:id/toggle-active", async (req, res) => {
   }
 });
 
+// All authenticated users can fetch officers (for dropdowns)
 router.get("/officers", async (req, res) => {
   try {
-    const officerRole = await db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.name, "loan_officer"))
-      .limit(1);
-
     const rows = await db
       .select({
         id: userProfiles.id,

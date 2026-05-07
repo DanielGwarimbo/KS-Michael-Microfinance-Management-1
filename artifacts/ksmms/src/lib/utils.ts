@@ -30,6 +30,9 @@ export function classNames(...classes: (string | boolean | undefined | null)[]):
   return classes.filter(Boolean).join(' ');
 }
 
+/** Alias used by shadcn/radix UI components */
+export const cn = classNames;
+
 export function generateReceiptNumber(): string {
   const num = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `RCP-${num}`;

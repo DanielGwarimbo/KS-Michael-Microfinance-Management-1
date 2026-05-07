@@ -7,11 +7,13 @@ import {
   documents,
   userProfiles,
 } from "@workspace/db/schema";
-import { eq, ilike, or, sql, desc } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { eq, sql, desc } from "drizzle-orm";
+import { requireAuth, requireRole } from "../middleware/auth";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUUID(val: string) { return UUID_RE.test(val); }
 
 const router = Router();
-
 router.use(requireAuth);
 
 async function nextClientNumber() {
@@ -22,6 +24,7 @@ async function nextClientNumber() {
   return `CLT-${String(n).padStart(4, "0")}`;
 }
 
+// All authenticated roles can view clients
 router.get("/clients", async (req, res) => {
   try {
     const { status, search } = req.query as Record<string, string>;
@@ -56,18 +59,11 @@ router.get("/clients", async (req, res) => {
         officer_name: userProfiles.full_name,
       })
       .from(clients)
-      .leftJoin(
-        userProfiles,
-        eq(clients.assigned_officer_id, userProfiles.id),
-      )
+      .leftJoin(userProfiles, eq(clients.assigned_officer_id, userProfiles.id))
       .orderBy(desc(clients.created_at));
 
     let result = rows;
-
-    if (status) {
-      result = result.filter((r) => r.status === status);
-    }
-
+    if (status) result = result.filter((r) => r.status === status);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -83,9 +79,7 @@ router.get("/clients", async (req, res) => {
     res.json(
       result.map((r) => ({
         ...r,
-        assigned_officer: r.officer_name
-          ? { full_name: r.officer_name }
-          : null,
+        assigned_officer: r.officer_name ? { full_name: r.officer_name } : null,
       })),
     );
   } catch (err) {
@@ -94,27 +88,35 @@ router.get("/clients", async (req, res) => {
   }
 });
 
-router.post("/clients", async (req, res) => {
-  try {
-    const client_number = await nextClientNumber();
-    const [row] = await db
-      .insert(clients)
-      .values({
-        ...req.body,
-        client_number,
-        created_by: req.user!.id,
-        monthly_income: Number(req.body.monthly_income || 0),
-      })
-      .returning();
-    res.json(row);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to create client" });
-  }
-});
+// Admin, manager, loan_officer can create clients
+router.post(
+  "/clients",
+  requireRole("admin", "manager", "loan_officer"),
+  async (req, res) => {
+    try {
+      const client_number = await nextClientNumber();
+      const [row] = await db
+        .insert(clients)
+        .values({
+          ...req.body,
+          client_number,
+          created_by: req.user!.id,
+          monthly_income: Number(req.body.monthly_income || 0),
+        })
+        .returning();
+      res.json(row);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to create client" });
+    }
+  },
+);
 
+// All authenticated roles can view a client detail
 router.get("/clients/:id", async (req, res) => {
   try {
+    const clientId = req.params.id as string;
+    if (!isUUID(clientId)) { res.status(404).json({ error: "Client not found" }); return; }
     const [row] = await db
       .select({
         id: clients.id,
@@ -145,66 +147,70 @@ router.get("/clients/:id", async (req, res) => {
         officer_name: userProfiles.full_name,
       })
       .from(clients)
-      .leftJoin(
-        userProfiles,
-        eq(clients.assigned_officer_id, userProfiles.id),
-      )
-      .where(eq(clients.id, req.params.id))
+      .leftJoin(userProfiles, eq(clients.assigned_officer_id, userProfiles.id))
+      .where(eq(clients.id, clientId))
       .limit(1);
 
     if (!row) {
       res.status(404).json({ error: "Client not found" });
       return;
     }
-
-    res.json({
-      ...row,
-      assigned_officer: row.officer_name ? { full_name: row.officer_name } : null,
-    });
+    res.json({ ...row, assigned_officer: row.officer_name ? { full_name: row.officer_name } : null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load client" });
   }
 });
 
-router.put("/clients/:id", async (req, res) => {
-  try {
-    const [row] = await db
-      .update(clients)
-      .set({
-        ...req.body,
-        updated_at: new Date(),
-        monthly_income: Number(req.body.monthly_income || 0),
-      })
-      .where(eq(clients.id, req.params.id))
-      .returning();
-    res.json(row);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to update client" });
-  }
-});
+// Admin, manager, loan_officer can update client details
+router.put(
+  "/clients/:id",
+  requireRole("admin", "manager", "loan_officer"),
+  async (req, res) => {
+    try {
+      const [row] = await db
+        .update(clients)
+        .set({
+          ...req.body,
+          updated_at: new Date(),
+          monthly_income: Number(req.body.monthly_income || 0),
+        })
+        .where(eq(clients.id, req.params.id as string))
+        .returning();
+      res.json(row);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to update client" });
+    }
+  },
+);
 
-router.put("/clients/:id/kyc", async (req, res) => {
-  try {
-    const [row] = await db
-      .update(clients)
-      .set({ kyc_verified: req.body.kyc_verified, updated_at: new Date() })
-      .where(eq(clients.id, req.params.id))
-      .returning();
-    res.json(row);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to update KYC" });
-  }
-});
+// Only admin/manager can verify KYC
+router.put(
+  "/clients/:id/kyc",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const [row] = await db
+        .update(clients)
+        .set({ kyc_verified: req.body.kyc_verified, updated_at: new Date() })
+        .where(eq(clients.id, req.params.id as string))
+        .returning();
+      res.json(row);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update KYC" });
+    }
+  },
+);
 
+// All roles can view guarantors
 router.get("/clients/:id/guarantors", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(guarantors)
-      .where(eq(guarantors.client_id, req.params.id));
+      .where(eq(guarantors.client_id, req.params.id as string));
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -212,29 +218,35 @@ router.get("/clients/:id/guarantors", async (req, res) => {
   }
 });
 
-router.post("/clients/:id/guarantors", async (req, res) => {
-  try {
-    const [row] = await db
-      .insert(guarantors)
-      .values({
-        ...req.body,
-        client_id: req.params.id,
-        monthly_income: Number(req.body.monthly_income || 0),
-      })
-      .returning();
-    res.json(row);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to add guarantor" });
-  }
-});
+// Admin, manager, loan_officer can add guarantors
+router.post(
+  "/clients/:id/guarantors",
+  requireRole("admin", "manager", "loan_officer"),
+  async (req, res) => {
+    try {
+      const [row] = await db
+        .insert(guarantors)
+        .values({
+          ...req.body,
+          client_id: req.params.id as string,
+          monthly_income: Number(req.body.monthly_income || 0),
+        })
+        .returning();
+      res.json(row);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to add guarantor" });
+    }
+  },
+);
 
+// All roles can view a client's loans
 router.get("/clients/:id/loans", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(loans)
-      .where(eq(loans.client_id, req.params.id))
+      .where(eq(loans.client_id, req.params.id as string))
       .orderBy(desc(loans.created_at));
     res.json(rows);
   } catch (err) {
@@ -243,12 +255,13 @@ router.get("/clients/:id/loans", async (req, res) => {
   }
 });
 
+// All roles can view a client's documents
 router.get("/clients/:id/documents", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(documents)
-      .where(eq(documents.entity_id, req.params.id));
+      .where(eq(documents.entity_id, req.params.id as string));
     res.json(rows);
   } catch (err) {
     console.error(err);

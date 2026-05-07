@@ -7,6 +7,7 @@ interface StatCardProps {
   icon: ReactNode;
   trend?: { value: number; label: string };
   color?: 'teal' | 'blue' | 'amber' | 'red' | 'green' | 'gray';
+  onClick?: () => void;
 }
 
 const colorClasses = {
@@ -18,9 +19,12 @@ const colorClasses = {
   gray: 'bg-gray-50 text-gray-600',
 };
 
-export default function StatCard({ title, value, icon, trend, color = 'teal' }: StatCardProps) {
+export default function StatCard({ title, value, icon, trend, color = 'teal', onClick }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className={classNames('bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow', onClick ? 'cursor-pointer' : '')}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>

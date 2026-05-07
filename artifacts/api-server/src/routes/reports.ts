@@ -7,13 +7,16 @@ import {
   userProfiles,
   clients,
 } from "@workspace/db/schema";
-import { eq, inArray, desc, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { eq, sql } from "drizzle-orm";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 router.use(requireAuth);
 
-router.get("/reports/summary", async (req, res) => {
+// Only admin, manager, accountant can access reports
+const reportAccess = requireRole("admin", "manager", "accountant");
+
+router.get("/reports/summary", reportAccess, async (req, res) => {
   try {
     const [allLoans, allRepayments, allEntries, allOfficers, allClients] =
       await Promise.all([
@@ -95,7 +98,7 @@ router.get("/reports/summary", async (req, res) => {
   }
 });
 
-router.get("/reports/portfolio", async (req, res) => {
+router.get("/reports/portfolio", reportAccess, async (req, res) => {
   try {
     const [allLoans, allRepayments, allEntries] = await Promise.all([
       db.select().from(loans),
@@ -105,27 +108,15 @@ router.get("/reports/portfolio", async (req, res) => {
 
     const activeLoans = allLoans.filter((l) => l.status === "active");
     const overdueLoans = allLoans.filter((l) => l.status === "overdue");
-    const disbursed = allLoans.filter((l) =>
-      ["active", "overdue", "closed", "defaulted"].includes(l.status),
-    );
-
-    const totalDisbursed = disbursed.reduce((s, l) => s + Number(l.principal), 0);
-    const totalCollected = allRepayments.reduce((s, r) => s + Number(r.amount), 0);
-    const outstanding = [...activeLoans, ...overdueLoans].reduce(
-      (s, l) => s + Number(l.outstanding_balance),
-      0,
-    );
-    const interestEarned = allEntries
-      .filter((e) => e.transaction_type === "interest_earned")
-      .reduce((s, e) => s + Number(e.amount), 0);
+    const disbursed = allLoans.filter((l) => ["active", "overdue", "closed", "defaulted"].includes(l.status));
 
     res.json({
       totalLoans: allLoans.length,
       activeLoans: activeLoans.length,
-      totalDisbursed,
-      totalCollected,
-      outstandingBalance: outstanding,
-      interestEarned,
+      totalDisbursed: disbursed.reduce((s, l) => s + Number(l.principal), 0),
+      totalCollected: allRepayments.reduce((s, r) => s + Number(r.amount), 0),
+      outstandingBalance: [...activeLoans, ...overdueLoans].reduce((s, l) => s + Number(l.outstanding_balance), 0),
+      interestEarned: allEntries.filter((e) => e.transaction_type === "interest_earned").reduce((s, e) => s + Number(e.amount), 0),
     });
   } catch (err) {
     console.error(err);
@@ -133,7 +124,7 @@ router.get("/reports/portfolio", async (req, res) => {
   }
 });
 
-router.get("/reports/overdue", async (req, res) => {
+router.get("/reports/overdue", reportAccess, async (req, res) => {
   try {
     const rows = await db
       .select({
@@ -149,19 +140,14 @@ router.get("/reports/overdue", async (req, res) => {
       .leftJoin(clients, eq(loans.client_id, clients.id))
       .where(eq(loans.status, "overdue"));
 
-    res.json(
-      rows.map((r) => ({
-        ...r,
-        client: { first_name: r.client_first_name, last_name: r.client_last_name },
-      })),
-    );
+    res.json(rows.map((r) => ({ ...r, client: { first_name: r.client_first_name, last_name: r.client_last_name } })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load overdue report" });
   }
 });
 
-router.get("/reports/officers", async (req, res) => {
+router.get("/reports/officers", reportAccess, async (req, res) => {
   try {
     const [officers, allClients, allLoans, allRepayments] = await Promise.all([
       db.select({ id: userProfiles.id, full_name: userProfiles.full_name }).from(userProfiles).where(eq(userProfiles.is_active, true)),
@@ -170,23 +156,18 @@ router.get("/reports/officers", async (req, res) => {
       db.select({ amount: repayments.amount, received_by: repayments.received_by }).from(repayments),
     ]);
 
-    const result = officers.map((o) => {
+    res.json(officers.map((o) => {
       const oLoans = allLoans.filter((l) => l.created_by === o.id);
       const oClients = allClients.filter((c) => c.assigned_officer_id === o.id);
-      const oCollected = allRepayments
-        .filter((r) => r.received_by === o.id)
-        .reduce((s, r) => s + Number(r.amount), 0);
       return {
         id: o.id,
         name: o.full_name,
         totalClients: oClients.length,
         totalLoans: oLoans.length,
         totalDisbursed: oLoans.reduce((s, l) => s + Number(l.principal), 0),
-        totalCollected: oCollected,
+        totalCollected: allRepayments.filter((r) => r.received_by === o.id).reduce((s, r) => s + Number(r.amount), 0),
       };
-    });
-
-    res.json(result);
+    }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load officer report" });

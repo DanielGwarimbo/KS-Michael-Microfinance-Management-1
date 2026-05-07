@@ -2,11 +2,12 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { documents, userProfiles } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 router.use(requireAuth);
 
+// All roles can view documents
 router.get("/documents", async (req, res) => {
   try {
     const { entity_type, verified } = req.query as Record<string, string>;
@@ -37,32 +38,32 @@ router.get("/documents", async (req, res) => {
     if (verified === "true") result = result.filter((r) => r.verified === true);
     else if (verified === "false") result = result.filter((r) => r.verified === false);
 
-    res.json(
-      result.map((r) => ({ ...r, uploader: { full_name: r.uploader_name } })),
-    );
+    res.json(result.map((r) => ({ ...r, uploader: { full_name: r.uploader_name } })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load documents" });
   }
 });
 
-router.put("/documents/:id/verify", async (req, res) => {
-  try {
-    const [updated] = await db
-      .update(documents)
-      .set({
-        verified: true,
-        verified_by: req.user!.id,
-        verified_at: new Date(),
-      })
-      .where(eq(documents.id, req.params.id))
-      .returning();
+// Only admin/manager can verify documents
+router.put(
+  "/documents/:id/verify",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const docId = req.params.id as string;
+      const [updated] = await db
+        .update(documents)
+        .set({ verified: true, verified_by: req.user!.id, verified_at: new Date() })
+        .where(eq(documents.id, docId))
+        .returning();
 
-    res.json(updated);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to verify document" });
-  }
-});
+      res.json(updated);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to verify document" });
+    }
+  },
+);
 
 export default router;

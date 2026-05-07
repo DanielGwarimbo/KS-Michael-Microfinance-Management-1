@@ -8,10 +8,12 @@ import {
   documents,
   accountingEntries,
   userProfiles,
-  guarantors,
 } from "@workspace/db/schema";
-import { eq, inArray, sql, desc, and } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { eq, inArray, sql, desc } from "drizzle-orm";
+import { requireAuth, requireRole } from "../middleware/auth";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUUID(val: string) { return UUID_RE.test(val); }
 
 const router = Router();
 router.use(requireAuth);
@@ -59,6 +61,7 @@ function buildSchedule(
   });
 }
 
+// All authenticated roles can view loans
 router.get("/loans", async (req, res) => {
   try {
     const { status } = req.query as Record<string, string>;
@@ -120,6 +123,7 @@ router.get("/loans", async (req, res) => {
   }
 });
 
+// Active loans — all authenticated roles (used in repayment dropdown)
 router.get("/loans/active", async (req, res) => {
   try {
     const rows = await db
@@ -161,37 +165,41 @@ router.get("/loans/active", async (req, res) => {
   }
 });
 
-router.post("/loans", async (req, res) => {
-  try {
-    const loan_number = await nextLoanNumber();
-    const [row] = await db
-      .insert(loans)
-      .values({
-        ...req.body,
-        loan_number,
-        created_by: req.user!.id,
-        principal: Number(req.body.principal),
-        interest_rate: Number(req.body.interest_rate),
-        term_months: Number(req.body.term_months),
-        total_payable: Number(req.body.total_payable),
-        installment_amount: Number(req.body.installment_amount),
-        outstanding_balance: Number(req.body.outstanding_balance),
-        total_paid: 0,
-      })
-      .returning();
-    res.json(row);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to create loan" });
-  }
-});
+// Admin, manager, loan_officer can create loan applications
+router.post(
+  "/loans",
+  requireRole("admin", "manager", "loan_officer"),
+  async (req, res) => {
+    try {
+      const loan_number = await nextLoanNumber();
+      const [row] = await db
+        .insert(loans)
+        .values({
+          ...req.body,
+          loan_number,
+          created_by: req.user!.id,
+          principal: Number(req.body.principal),
+          interest_rate: Number(req.body.interest_rate),
+          term_months: Number(req.body.term_months),
+          total_payable: Number(req.body.total_payable),
+          installment_amount: Number(req.body.installment_amount),
+          outstanding_balance: Number(req.body.outstanding_balance),
+          total_paid: 0,
+        })
+        .returning();
+      res.json(row);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to create loan" });
+    }
+  },
+);
 
+// All roles can view a loan
 router.get("/loans/:id", async (req, res) => {
   try {
-    const creatorAlias = db.$with("creator").as(
-      db.select({ id: userProfiles.id, full_name: userProfiles.full_name }).from(userProfiles)
-    );
-
+    const loanId = req.params.id as string;
+    if (!isUUID(loanId)) { res.status(404).json({ error: "Loan not found" }); return; }
     const rows = await db
       .select({
         id: loans.id,
@@ -229,7 +237,7 @@ router.get("/loans/:id", async (req, res) => {
       })
       .from(loans)
       .leftJoin(clients, eq(loans.client_id, clients.id))
-      .where(eq(loans.id, req.params.id))
+      .where(eq(loans.id, loanId))
       .limit(1);
 
     if (!rows.length) {
@@ -238,7 +246,6 @@ router.get("/loans/:id", async (req, res) => {
     }
 
     const loan = rows[0];
-
     const [creatorRow] = loan.created_by
       ? await db.select({ full_name: userProfiles.full_name }).from(userProfiles).where(eq(userProfiles.id, loan.created_by)).limit(1)
       : [null];
@@ -270,12 +277,13 @@ router.get("/loans/:id", async (req, res) => {
   }
 });
 
+// All roles can view loan schedule
 router.get("/loans/:id/schedule", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(repaymentSchedules)
-      .where(eq(repaymentSchedules.loan_id, req.params.id))
+      .where(eq(repaymentSchedules.loan_id, req.params.id as string))
       .orderBy(repaymentSchedules.installment_number);
     res.json(rows);
   } catch (err) {
@@ -284,6 +292,7 @@ router.get("/loans/:id/schedule", async (req, res) => {
   }
 });
 
+// All roles can view a loan's repayments
 router.get("/loans/:id/repayments", async (req, res) => {
   try {
     const rows = await db
@@ -303,7 +312,7 @@ router.get("/loans/:id/repayments", async (req, res) => {
       })
       .from(repayments)
       .leftJoin(userProfiles, eq(repayments.received_by, userProfiles.id))
-      .where(eq(repayments.loan_id, req.params.id))
+      .where(eq(repayments.loan_id, req.params.id as string))
       .orderBy(desc(repayments.created_at));
 
     res.json(rows.map((r) => ({ ...r, receiver: { full_name: r.receiver_name } })));
@@ -313,12 +322,13 @@ router.get("/loans/:id/repayments", async (req, res) => {
   }
 });
 
+// All roles can view a loan's documents
 router.get("/loans/:id/documents", async (req, res) => {
   try {
     const rows = await db
       .select()
       .from(documents)
-      .where(eq(documents.entity_id, req.params.id));
+      .where(eq(documents.entity_id, req.params.id as string));
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -326,123 +336,117 @@ router.get("/loans/:id/documents", async (req, res) => {
   }
 });
 
-router.post("/loans/:id/approve", async (req, res) => {
-  try {
-    const loanRows = await db.select().from(loans).where(eq(loans.id, req.params.id)).limit(1);
-    if (!loanRows.length) {
-      res.status(404).json({ error: "Loan not found" });
-      return;
+// Only admin/manager can approve loans
+router.post(
+  "/loans/:id/approve",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const approveId = req.params.id as string;
+      if (!isUUID(approveId)) { res.status(404).json({ error: "Loan not found" }); return; }
+      const loanRows = await db.select().from(loans).where(eq(loans.id, approveId)).limit(1);
+      if (!loanRows.length) {
+        res.status(404).json({ error: "Loan not found" });
+        return;
+      }
+      const loan = loanRows[0];
+      if (loan.status !== "pending") {
+        res.status(400).json({ error: "Only pending loans can be approved" });
+        return;
+      }
+
+      const [updated] = await db
+        .update(loans)
+        .set({ status: "approved", approved_by: req.user!.id, approved_at: new Date(), updated_at: new Date() })
+        .where(eq(loans.id, approveId))
+        .returning();
+
+      res.json(updated);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to approve loan" });
     }
-    const loan = loanRows[0];
-    if (loan.status !== "pending") {
-      res.status(400).json({ error: "Only pending loans can be approved" });
-      return;
+  },
+);
+
+// Only admin/manager can reject loans
+router.post(
+  "/loans/:id/reject",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const rejectId = req.params.id as string;
+      if (!isUUID(rejectId)) { res.status(404).json({ error: "Loan not found" }); return; }
+      const { rejection_reason } = req.body;
+      if (!rejection_reason) {
+        res.status(400).json({ error: "Rejection reason required" });
+        return;
+      }
+
+      const [updated] = await db
+        .update(loans)
+        .set({ status: "rejected", rejected_by: req.user!.id, rejected_at: new Date(), rejection_reason, updated_at: new Date() })
+        .where(eq(loans.id, rejectId))
+        .returning();
+
+      res.json(updated);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to reject loan" });
     }
+  },
+);
 
-    const [updated] = await db
-      .update(loans)
-      .set({
-        status: "approved",
-        approved_by: req.user!.id,
-        approved_at: new Date(),
-        updated_at: new Date(),
-      })
-      .where(eq(loans.id, req.params.id))
-      .returning();
+// Only admin/cashier can disburse loans
+router.post(
+  "/loans/:id/disburse",
+  requireRole("admin", "cashier"),
+  async (req, res) => {
+    try {
+      const disburseId = req.params.id as string;
+      if (!isUUID(disburseId)) { res.status(404).json({ error: "Loan not found" }); return; }
+      const loanRows = await db.select().from(loans).where(eq(loans.id, disburseId)).limit(1);
+      if (!loanRows.length) {
+        res.status(404).json({ error: "Loan not found" });
+        return;
+      }
+      const loan = loanRows[0];
+      if (loan.status !== "approved") {
+        res.status(400).json({ error: "Only approved loans can be disbursed" });
+        return;
+      }
 
-    res.json(updated);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to approve loan" });
-  }
-});
+      const startDate = new Date().toISOString().split("T")[0];
+      const maturityDateObj = new Date();
+      maturityDateObj.setMonth(maturityDateObj.getMonth() + loan.term_months);
+      const maturityDate = maturityDateObj.toISOString().split("T")[0];
 
-router.post("/loans/:id/reject", async (req, res) => {
-  try {
-    const { rejection_reason } = req.body;
-    if (!rejection_reason) {
-      res.status(400).json({ error: "Rejection reason required" });
-      return;
+      const [updated] = await db
+        .update(loans)
+        .set({ status: "active", disbursed_by: req.user!.id, disbursed_at: new Date(), start_date: startDate, maturity_date: maturityDate, updated_at: new Date() })
+        .where(eq(loans.id, disburseId))
+        .returning();
+
+      await db.insert(accountingEntries).values({
+        transaction_type: "disbursement",
+        reference_id: loan.id,
+        reference_type: "loan",
+        amount: loan.principal,
+        description: `Loan disbursement - ${loan.loan_number}`,
+        created_by: req.user!.id,
+      });
+
+      const schedule = buildSchedule(loan.principal, loan.interest_rate, loan.term_months, loan.repayment_frequency, startDate);
+      if (schedule.length > 0) {
+        await db.insert(repaymentSchedules).values(schedule.map((s) => ({ ...s, loan_id: loan.id })));
+      }
+
+      res.json(updated);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message || "Failed to disburse loan" });
     }
-
-    const [updated] = await db
-      .update(loans)
-      .set({
-        status: "rejected",
-        rejected_by: req.user!.id,
-        rejected_at: new Date(),
-        rejection_reason,
-        updated_at: new Date(),
-      })
-      .where(eq(loans.id, req.params.id))
-      .returning();
-
-    res.json(updated);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to reject loan" });
-  }
-});
-
-router.post("/loans/:id/disburse", async (req, res) => {
-  try {
-    const loanRows = await db.select().from(loans).where(eq(loans.id, req.params.id)).limit(1);
-    if (!loanRows.length) {
-      res.status(404).json({ error: "Loan not found" });
-      return;
-    }
-    const loan = loanRows[0];
-    if (loan.status !== "approved") {
-      res.status(400).json({ error: "Only approved loans can be disbursed" });
-      return;
-    }
-
-    const startDate = new Date().toISOString().split("T")[0];
-    const maturityDateObj = new Date();
-    maturityDateObj.setMonth(maturityDateObj.getMonth() + loan.term_months);
-    const maturityDate = maturityDateObj.toISOString().split("T")[0];
-
-    const [updated] = await db
-      .update(loans)
-      .set({
-        status: "active",
-        disbursed_by: req.user!.id,
-        disbursed_at: new Date(),
-        start_date: startDate,
-        maturity_date: maturityDate,
-        updated_at: new Date(),
-      })
-      .where(eq(loans.id, req.params.id))
-      .returning();
-
-    await db.insert(accountingEntries).values({
-      transaction_type: "disbursement",
-      reference_id: loan.id,
-      reference_type: "loan",
-      amount: loan.principal,
-      description: `Loan disbursement - ${loan.loan_number}`,
-      created_by: req.user!.id,
-    });
-
-    const schedule = buildSchedule(
-      loan.principal,
-      loan.interest_rate,
-      loan.term_months,
-      loan.repayment_frequency,
-      startDate,
-    );
-
-    if (schedule.length > 0) {
-      await db.insert(repaymentSchedules).values(
-        schedule.map((s) => ({ ...s, loan_id: loan.id })),
-      );
-    }
-
-    res.json(updated);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Failed to disburse loan" });
-  }
-});
+  },
+);
 
 export default router;
