@@ -72,6 +72,45 @@ router.post("/users", requireRole("admin"), async (req, res) => {
   }
 });
 
+// Only admins can reset any user's password
+router.put("/users/:id/reset-password", requireRole("admin"), async (req, res) => {
+  try {
+    const userId = req.params.id as string;
+    const { new_password } = req.body;
+
+    if (!new_password) {
+      res.status(400).json({ error: "New password is required" });
+      return;
+    }
+    if (new_password.length < 6) {
+      res.status(400).json({ error: "Password must be at least 6 characters" });
+      return;
+    }
+
+    const existing = await db
+      .select({ id: userProfiles.id })
+      .from(userProfiles)
+      .where(eq(userProfiles.id, userId))
+      .limit(1);
+
+    if (!existing.length) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    await db
+      .update(userProfiles)
+      .set({ password_hash, updated_at: new Date() })
+      .where(eq(userProfiles.id, userId));
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to reset password" });
+  }
+});
+
 // Only admins can toggle user active status (and not their own)
 router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) => {
   try {
