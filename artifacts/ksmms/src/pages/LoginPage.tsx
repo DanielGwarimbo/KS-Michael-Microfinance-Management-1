@@ -65,13 +65,11 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] relative z-10">
         {/* Logo + Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-24 w-24 rounded-3xl bg-white/5 backdrop-blur-sm ring-1 ring-white/10 mb-5 shadow-xl">
-            <img
-              src="/logo.png"
-              alt="KS Michael Finance"
-              className="h-16 w-16 object-contain"
-            />
-          </div>
+          <img
+            src="/logo.png"
+            alt="KS Michael Finance"
+            className="h-28 w-28 object-contain mx-auto mb-5 drop-shadow-xl"
+          />
           <h1 className="font-display text-[26px] font-extrabold text-white tracking-tight leading-tight">
             KS Michael Finance
           </h1>

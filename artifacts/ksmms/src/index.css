@@ -14,14 +14,14 @@
   }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-family: 'Nunito Sans', system-ui, sans-serif;
+    font-feature-settings: 'kern', 'liga';
     background-color: #F1F5F9;
     color: #0f172a;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Nunito Sans', system-ui, sans-serif;
   }
 
   ::selection {
@@ -63,7 +63,7 @@
   }
 
   .font-display {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Nunito Sans', system-ui, sans-serif;
   }
 
   .text-balance {
