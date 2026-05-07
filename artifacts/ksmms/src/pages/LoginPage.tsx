@@ -46,7 +46,7 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #071827 0%, #113244 50%, #1B475B 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0C0E13 0%, #141B26 50%, #1A2736 100%)' }}>
         <div className="animate-spin h-10 w-10 border-[3px] border-white/20 border-t-white rounded-full" />
       </div>
     );
@@ -55,7 +55,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #071827 0%, #0B2333 40%, #163D50 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #0C0E13 0%, #141B26 40%, #1A2736 100%)' }}
     >
       {/* Decorative blobs */}
       <div className="absolute top-[-10%] right-[-5%] h-80 w-80 rounded-full bg-brand-600/20 blur-3xl pointer-events-none" />
@@ -68,7 +68,7 @@ export default function LoginPage() {
           <img
             src="/logo.png"
             alt="KS Michael Finance"
-            className="h-[168px] w-[168px] object-contain mx-auto mb-[-36px] drop-shadow-xl"
+            className="h-[188px] w-[188px] object-contain mx-auto mb-[-42px] drop-shadow-xl"
           />
           <h1 className="font-display text-[26px] font-extrabold text-white tracking-tight leading-tight">
             KS Michael Finance
