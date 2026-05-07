@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { startOverdueScheduler } from "./scheduler/overdueChecker";
 
 const app: Express = express();
 
@@ -32,5 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api", router);
+
+startOverdueScheduler();
 
 export default app;
