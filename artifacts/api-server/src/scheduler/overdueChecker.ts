@@ -1,7 +1,8 @@
 import { db } from "@workspace/db";
-import { loans, repaymentSchedules, auditLogs, userProfiles, roles } from "@workspace/db/schema";
-import { eq, and, lt, inArray, isNotNull } from "drizzle-orm";
+import { loans, repaymentSchedules, auditLogs, userProfiles, roles, clients } from "@workspace/db/schema";
+import { eq, and, lt, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { sendOverdueNotifications } from "../lib/notifications";
 
 interface SystemActor {
   id: string;
@@ -39,7 +40,14 @@ export async function runOverdueCheck(): Promise<void> {
     }
 
     const overdueLoans = await db
-      .select({ id: loans.id, loan_number: loans.loan_number, maturity_date: loans.maturity_date })
+      .select({
+        id: loans.id,
+        loan_number: loans.loan_number,
+        maturity_date: loans.maturity_date,
+        outstanding_balance: loans.outstanding_balance,
+        client_id: loans.client_id,
+        created_by: loans.created_by,
+      })
       .from(loans)
       .where(and(eq(loans.status, "active"), lt(loans.maturity_date, today)));
 
@@ -69,6 +77,9 @@ export async function runOverdueCheck(): Promise<void> {
           },
         })),
       );
+
+      // Notify for each newly overdue loan; run concurrently but await all results
+      await Promise.allSettled(overdueLoans.map((loan) => sendOverdueNotificationForLoan(loan)));
     } else {
       logger.info({ date: today }, "No active loans past maturity date");
     }
@@ -115,6 +126,58 @@ export async function runOverdueCheck(): Promise<void> {
     }
   } catch (err) {
     logger.error({ err }, "Overdue checker failed");
+  }
+}
+
+interface LoanStub {
+  id: string;
+  loan_number: string;
+  maturity_date: string | null;
+  outstanding_balance: number;
+  client_id: string;
+  created_by: string;
+}
+
+async function sendOverdueNotificationForLoan(loan: LoanStub): Promise<void> {
+  try {
+    const [clientRow] = await db
+      .select({
+        first_name: clients.first_name,
+        last_name: clients.last_name,
+        email: clients.email,
+        phone: clients.phone,
+        assigned_officer_id: clients.assigned_officer_id,
+      })
+      .from(clients)
+      .where(eq(clients.id, loan.client_id))
+      .limit(1);
+
+    // Prefer the client's assigned officer; fall back to the loan creator
+    const officerId = clientRow?.assigned_officer_id ?? loan.created_by;
+
+    const [officerRow] = await db
+      .select({
+        full_name: userProfiles.full_name,
+        email: userProfiles.email,
+        phone: userProfiles.phone,
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.id, officerId))
+      .limit(1);
+
+    await sendOverdueNotifications({
+      loanNumber: loan.loan_number,
+      clientName: clientRow ? `${clientRow.first_name} ${clientRow.last_name}` : "Client",
+      maturityDate: loan.maturity_date ?? "N/A",
+      outstandingBalance: loan.outstanding_balance,
+      officerName: officerRow?.full_name,
+      officerEmail: officerRow?.email || undefined,
+      officerPhone: officerRow?.phone || undefined,
+      clientEmail: clientRow?.email || undefined,
+      clientPhone: clientRow?.phone || undefined,
+    });
+  } catch (err) {
+    logger.error({ err, loan_id: loan.id }, "Failed to send overdue notifications for loan");
   }
 }
 
