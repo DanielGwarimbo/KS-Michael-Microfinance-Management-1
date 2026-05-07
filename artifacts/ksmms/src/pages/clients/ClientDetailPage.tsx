@@ -18,7 +18,7 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [guarantors, setGuarantors] = useState<Guarantor[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -31,7 +31,8 @@ export default function ClientDetailPage() {
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const canDelete = hasRole(['admin', 'manager']);
+  const canDeleteDoc = (doc: Document) =>
+    hasRole(['admin', 'manager']) || doc.uploaded_by === user?.id;
   const canVerifyKyc = hasRole(['admin', 'manager']);
   const [verifyingGuarantorId, setVerifyingGuarantorId] = useState<string | null>(null);
 
@@ -279,7 +280,7 @@ export default function ClientDetailPage() {
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
-                              {canDelete && (
+                              {canDeleteDoc(doc) && (
                                 <button
                                   onClick={() => setDeleteTarget(doc)}
                                   className="text-red-400 hover:text-red-600 shrink-0"
@@ -338,7 +339,7 @@ export default function ClientDetailPage() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
-                    {canDelete && (
+                    {canDeleteDoc(doc) && (
                       <button
                         onClick={() => setDeleteTarget(doc)}
                         className="text-red-400 hover:text-red-600 shrink-0"

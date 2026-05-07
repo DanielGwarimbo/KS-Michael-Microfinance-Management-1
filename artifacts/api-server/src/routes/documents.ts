@@ -141,10 +141,9 @@ router.post("/documents", upload.single("file"), async (req, res) => {
   }
 });
 
-// Only admin/manager can delete documents
+// Admin/manager can delete any document; other roles can delete documents they uploaded
 router.delete(
   "/documents/:id",
-  requireRole("admin", "manager"),
   async (req, res) => {
     try {
       const docId = req.params.id as string;
@@ -157,12 +156,20 @@ router.delete(
           document_type: documents.document_type,
           entity_type: documents.entity_type,
           entity_id: documents.entity_id,
+          uploaded_by: documents.uploaded_by,
         })
         .from(documents)
         .where(eq(documents.id, docId));
 
       if (!doc) {
         res.status(404).json({ error: "Document not found" });
+        return;
+      }
+
+      const isAdminOrManager = ["admin", "manager"].includes(req.user!.role_name);
+      const isUploader = doc.uploaded_by === req.user!.id;
+      if (!isAdminOrManager && !isUploader) {
+        res.status(403).json({ error: "You can only delete documents you uploaded" });
         return;
       }
 

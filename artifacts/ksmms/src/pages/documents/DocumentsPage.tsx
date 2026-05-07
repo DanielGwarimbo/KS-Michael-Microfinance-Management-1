@@ -34,7 +34,7 @@ function getDocumentViewUrl(doc: DocumentRow): string {
 }
 
 export default function DocumentsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const { addNotification } = useNotification();
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,8 @@ export default function DocumentsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const canVerify = hasRole(['admin', 'manager']);
-  const canDelete = hasRole(['admin', 'manager']);
+  const canDeleteDoc = (doc: DocumentRow) =>
+    hasRole(['admin', 'manager']) || doc.uploaded_by === user?.id;
 
   useEffect(() => { fetchDocuments(); }, [entityFilter, verifiedFilter]);
 
@@ -131,13 +132,13 @@ export default function DocumentsPage() {
         </div>
         <DataTable columns={columns} data={documents} searchPlaceholder="Search documents..."
           emptyMessage={loading ? 'Loading...' : 'No documents found'}
-          actions={canVerify || canDelete ? (d: any) => {
+          actions={canVerify || documents.some((d) => canDeleteDoc(d)) ? (d: any) => {
             const verifyBtn = canVerify && !d.verified ? (
               <Button key="verify" size="sm" variant="outline" onClick={() => handleVerify(d)} loading={verifying === d.id}>
                 <CheckCircle className="h-4 w-4 mr-1" />Verify
               </Button>
             ) : null;
-            const deleteBtn = canDelete ? (
+            const deleteBtn = canDeleteDoc(d) ? (
               <Button key="delete" size="sm" variant="danger" onClick={() => setDeleteTarget(d)}>
                 <Trash2 className="h-4 w-4" />
               </Button>

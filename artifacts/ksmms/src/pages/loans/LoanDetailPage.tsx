@@ -15,7 +15,7 @@ import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/typ
 
 export default function LoanDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { profile, roleName, hasRole } = useAuth();
+  const { profile, roleName, hasRole, user } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
   const [loan, setLoan] = useState<Loan | null>(null);
@@ -29,7 +29,8 @@ export default function LoanDetailPage() {
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const canDelete = hasRole(['admin', 'manager']);
+  const canDeleteDoc = (doc: Document) =>
+    hasRole(['admin', 'manager']) || doc.uploaded_by === user?.id;
 
   useEffect(() => { if (id) loadLoanData(); }, [id]);
 
@@ -298,7 +299,7 @@ export default function LoanDetailPage() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
-                    {canDelete && (
+                    {canDeleteDoc(doc) && (
                       <button
                         onClick={() => setDeleteTarget(doc)}
                         className="text-red-400 hover:text-red-600 shrink-0"
