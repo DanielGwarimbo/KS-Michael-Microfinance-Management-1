@@ -183,7 +183,7 @@ export const FREQUENCY_LABELS: Record<string, string> = {
 
 export const LOAN_PRODUCT_TYPE_LABELS: Record<string, string> = {
   salary_based: 'Salary Based Loan',
-  business_msme: 'Business & MSME Loan',
+  business_sme: 'Business & SME Loan',
   agricultural: 'Agricultural & Value Chain Loan',
   life_events: 'Life Events Loan',
   product_based: 'Product-Based Loan',
@@ -193,7 +193,7 @@ export const LOAN_PRODUCT_TYPE_LABELS: Record<string, string> = {
 
 export const LOAN_PRODUCT_TYPE_DESCRIPTIONS: Record<string, string> = {
   salary_based: 'Short-term loans for formally employed individuals (Civil Servants & Private Sector)',
-  business_msme: 'Working capital financing for micro, small, and medium enterprises',
+  business_sme: 'Working capital financing for small and medium enterprises',
   agricultural: 'Financing for farming inputs, irrigation, equipment, livestock projects',
   life_events: 'Funding for education fees, medical expenses, and funeral costs',
   product_based: 'Credit facilities to acquire furniture, farming inputs, and household assets',

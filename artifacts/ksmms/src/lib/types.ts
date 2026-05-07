@@ -80,7 +80,7 @@ export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'active' | 'overd
 
 export type LoanProductType =
   | 'salary_based'
-  | 'business_msme'
+  | 'business_sme'
   | 'agricultural'
   | 'life_events'
   | 'product_based'
