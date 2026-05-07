@@ -68,7 +68,7 @@ export default function LoginPage() {
           <img
             src="/logo.png"
             alt="KS Michael Finance"
-            className="h-28 w-28 object-contain mx-auto mb-5 drop-shadow-xl"
+            className="h-[168px] w-[168px] object-contain mx-auto mb-[-36px] drop-shadow-xl"
           />
           <h1 className="font-display text-[26px] font-extrabold text-white tracking-tight leading-tight">
             KS Michael Finance
