@@ -7,7 +7,7 @@ import {
   documents,
   userProfiles,
 } from "@workspace/db/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -200,6 +200,36 @@ router.put(
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to update KYC" });
+    }
+  },
+);
+
+// Only admin/manager can verify a guarantor's KYC
+router.put(
+  "/clients/:clientId/guarantors/:guarantorId/kyc",
+  requireRole("admin", "manager"),
+  async (req, res) => {
+    try {
+      const { clientId, guarantorId } = req.params as { clientId: string; guarantorId: string };
+      if (!isUUID(clientId) || !isUUID(guarantorId)) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      const kyc_verified = req.body.kyc_verified;
+      if (typeof kyc_verified !== "boolean") {
+        res.status(400).json({ error: "kyc_verified must be a boolean" });
+        return;
+      }
+      const [row] = await db
+        .update(guarantors)
+        .set({ kyc_verified, updated_at: new Date() })
+        .where(and(eq(guarantors.id, guarantorId), eq(guarantors.client_id, clientId)))
+        .returning();
+      if (!row) { res.status(404).json({ error: "Guarantor not found" }); return; }
+      res.json(row);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to update guarantor KYC" });
     }
   },
 );

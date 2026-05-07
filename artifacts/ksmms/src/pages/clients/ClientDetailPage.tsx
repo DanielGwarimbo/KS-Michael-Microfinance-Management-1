@@ -32,6 +32,8 @@ export default function ClientDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   const canDelete = hasRole(['admin', 'manager']);
+  const canVerifyKyc = hasRole(['admin', 'manager']);
+  const [verifyingGuarantorId, setVerifyingGuarantorId] = useState<string | null>(null);
 
   useEffect(() => { if (id) loadClientData(); }, [id]);
 
@@ -81,6 +83,20 @@ export default function ClientDetailPage() {
       loadClientData();
     } catch (err: any) {
       addNotification('error', err.message || 'Failed to add guarantor');
+    }
+  }
+
+  async function toggleGuarantorKyc(g: Guarantor) {
+    setVerifyingGuarantorId(g.id);
+    try {
+      const { error } = await api.put(`/clients/${id}/guarantors/${g.id}/kyc`, { kyc_verified: !g.kyc_verified });
+      if (error) throw new Error(error);
+      addNotification('success', g.kyc_verified ? 'Guarantor KYC verification removed' : 'Guarantor KYC verified');
+      setGuarantors((prev) => prev.map((x) => x.id === g.id ? { ...x, kyc_verified: !g.kyc_verified } : x));
+    } catch {
+      addNotification('error', 'Failed to update guarantor KYC status');
+    } finally {
+      setVerifyingGuarantorId(null);
     }
   }
 
@@ -218,9 +234,22 @@ export default function ClientDetailPage() {
                             {g.kyc_verified ? 'KYC Verified' : 'KYC Pending'}
                           </Badge>
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => setUploadingGuarantorId(g.id)} title="Upload KYC document for this guarantor">
-                          <Upload className="h-3 w-3 mr-1" /> Doc
-                        </Button>
+                        <div className="flex flex-col gap-1 items-end">
+                          {canVerifyKyc && (
+                            <Button
+                              size="sm"
+                              variant={g.kyc_verified ? 'outline' : 'primary'}
+                              onClick={() => toggleGuarantorKyc(g)}
+                              loading={verifyingGuarantorId === g.id}
+                              title={g.kyc_verified ? 'Remove KYC verification' : 'Mark guarantor as KYC verified'}
+                            >
+                              {g.kyc_verified ? 'Unverify KYC' : 'Verify KYC'}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" onClick={() => setUploadingGuarantorId(g.id)} title="Upload KYC document for this guarantor">
+                            <Upload className="h-3 w-3 mr-1" /> Doc
+                          </Button>
+                        </div>
                       </div>
                       {gDocs.length > 0 && (
                         <div className="space-y-1 pt-1 border-t border-gray-100">
