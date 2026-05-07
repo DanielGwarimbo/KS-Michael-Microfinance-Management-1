@@ -10,6 +10,7 @@ import Modal from '../../components/ui/Modal';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
 import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react';
+import DocThumbnail from '../../components/documents/DocThumbnail';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
 
 export default function LoanDetailPage() {
@@ -281,7 +282,11 @@ export default function LoanDetailPage() {
               <div className="space-y-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-2 p-2 rounded border border-gray-100 text-sm">
-                    <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                    <DocThumbnail
+                      mimeType={doc.mime_type}
+                      viewUrl={getDocumentViewUrl(doc)}
+                      fileName={doc.file_name}
+                    />
                     <span className="flex-1 truncate text-xs" title={doc.file_name}>{doc.file_name}</span>
                     <Badge colorClass={doc.verified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>{doc.verified ? 'Verified' : 'Unverified'}</Badge>
                     <a

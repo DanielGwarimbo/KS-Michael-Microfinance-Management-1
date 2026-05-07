@@ -11,6 +11,7 @@ import GuarantorForm from '../../components/clients/GuarantorForm';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, CLIENT_STATUS_COLORS, EMPLOYMENT_LABELS } from '../../lib/utils';
 import { ArrowLeft, Plus, FileText, Upload, ExternalLink, Trash2 } from 'lucide-react';
+import DocThumbnail from '../../components/documents/DocThumbnail';
 import type { Client, Guarantor, Loan, Document } from '../../lib/types';
 
 export default function ClientDetailPage() {
@@ -225,7 +226,12 @@ export default function ClientDetailPage() {
                         <div className="space-y-1 pt-1 border-t border-gray-100">
                           {gDocs.map((doc) => (
                             <div key={doc.id} className="flex items-center gap-2 text-xs">
-                              <FileText className="h-3 w-3 text-gray-400 shrink-0" />
+                              <DocThumbnail
+                                mimeType={doc.mime_type}
+                                viewUrl={getDocumentViewUrl(doc)}
+                                fileName={doc.file_name}
+                                size="sm"
+                              />
                               <span className="flex-1 truncate text-gray-700" title={doc.file_name}>{doc.file_name}</span>
                               <Badge colorClass={doc.verified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>
                                 {doc.verified ? 'Verified' : 'Unverified'}
@@ -280,7 +286,11 @@ export default function ClientDetailPage() {
               <div className="space-y-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-2 p-2 rounded border border-gray-100 text-sm">
-                    <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                    <DocThumbnail
+                      mimeType={doc.mime_type}
+                      viewUrl={getDocumentViewUrl(doc)}
+                      fileName={doc.file_name}
+                    />
                     <span className="flex-1 truncate text-xs" title={doc.file_name}>{doc.file_name}</span>
                     <Badge colorClass={doc.verified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'}>
                       {doc.verified ? 'Verified' : 'Unverified'}

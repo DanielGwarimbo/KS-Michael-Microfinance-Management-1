@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileText, CheckCircle, ExternalLink, Trash2 } from 'lucide-react';
+import DocThumbnail from '../../components/documents/DocThumbnail';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -88,7 +89,11 @@ export default function DocumentsPage() {
   const columns = [
     { key: 'file_name', header: 'File Name', render: (d: DocumentRow) => (
       <span className="flex items-center gap-2">
-        <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+        <DocThumbnail
+          mimeType={d.mime_type}
+          viewUrl={getDocumentViewUrl(d)}
+          fileName={d.file_name}
+        />
         <span className="truncate max-w-[180px]" title={d.file_name}>{d.file_name}</span>
       </span>
     )},
