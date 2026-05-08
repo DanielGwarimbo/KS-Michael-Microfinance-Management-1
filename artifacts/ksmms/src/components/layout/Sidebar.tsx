@@ -71,22 +71,22 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
     >
       {/* Logo / Brand */}
       <div className={classNames(
-        'flex items-center h-16 border-b border-white/[0.07] flex-shrink-0',
+        'flex items-center h-20 border-b border-white/[0.07] flex-shrink-0',
         isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
       )}>
         {!isCollapsed && (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-14 w-14 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-white/10">
               <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="font-display font-bold text-white text-sm leading-tight tracking-tight">KS Michael Finance</p>
-              <p className="text-gold-400 text-xs font-medium leading-tight tracking-wide">(Pvt) Ltd</p>
+              <p className="font-display font-extrabold text-white text-sm leading-tight tracking-tight">KS Michael Finance</p>
+              <p className="text-gold-400 text-xs font-bold leading-tight tracking-wide">(Pvt) Ltd</p>
             </div>
           </div>
         )}
         {isCollapsed && (
-          <div className="h-8 w-8 rounded-lg overflow-hidden ring-1 ring-white/10">
+          <div className="h-11 w-11 rounded-xl overflow-hidden ring-1 ring-white/10">
             <img src="/logo.png" alt="KSM" className="h-full w-full object-cover" />
           </div>
         )}
@@ -128,7 +128,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
               onClick={() => handleNav(item.path)}
               title={isCollapsed ? item.label : undefined}
               className={classNames(
-                'w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 group relative',
+                'w-full flex items-center gap-3 rounded-xl text-sm font-bold transition-all duration-150 group relative',
                 isCollapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
                 isActive
                   ? 'bg-gold-400/15 text-gold-400'
