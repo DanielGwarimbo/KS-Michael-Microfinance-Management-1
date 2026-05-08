@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge';
 import {
   Users, FileText, DollarSign, TrendingUp,
   AlertTriangle, Clock, HandCoins, Receipt,
-  Calculator, ArrowUpRight, ChevronRight,
+  Calculator, ArrowUpRight, ChevronRight, ShieldAlert,
 } from 'lucide-react';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, ROLE_LABELS } from '../lib/utils';
 import type { RoleName } from '../lib/types';
@@ -20,6 +20,7 @@ interface DashboardStats {
   outstandingBalance: number;
   overdueLoans: number;
   pendingLoans: number;
+  pendingDocuments: number;
   recentLoans: Array<{
     id: string;
     loan_number: string;
@@ -141,6 +142,7 @@ export default function DashboardPage() {
   const canSeeRepayments = hasRole(['admin', 'manager', 'cashier', 'accountant']);
   const canSeeFinancials = hasRole(['admin', 'manager', 'cashier', 'accountant']);
   const canApproveLoans  = hasRole(['admin', 'manager']);
+  const canVerifyDocs    = hasRole(['admin', 'manager']);
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -255,6 +257,16 @@ export default function DashboardPage() {
             value={formatCurrency(stats.totalDisbursed)}
             icon={<FileText className="h-5 w-5" />}
             color="blue"
+          />
+        )}
+        {canVerifyDocs && (
+          <KpiCard
+            title="Pending Verification"
+            value={stats.pendingDocuments}
+            icon={<ShieldAlert className="h-5 w-5" />}
+            color="amber"
+            onClick={() => navigate('/documents?verified=false')}
+            sub="Documents awaiting review"
           />
         )}
       </div>

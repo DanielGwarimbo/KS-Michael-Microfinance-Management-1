@@ -4,6 +4,7 @@ import {
   clients,
   loans,
   repayments,
+  documents,
   userProfiles,
 } from "@workspace/db/schema";
 import { eq, inArray, desc, sql } from "drizzle-orm";
@@ -14,7 +15,7 @@ router.use(requireAuth);
 
 router.get("/dashboard/stats", async (req, res) => {
   try {
-    const [clientCount, loanRows, recentRepaymentRows, recentLoanRows] =
+    const [clientCount, loanRows, recentRepaymentRows, recentLoanRows, pendingDocsCount] =
       await Promise.all([
         db
           .select({ count: sql<number>`COUNT(*)` })
@@ -54,6 +55,10 @@ router.get("/dashboard/stats", async (req, res) => {
           .leftJoin(clients, eq(loans.client_id, clients.id))
           .orderBy(desc(loans.created_at))
           .limit(5),
+        db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(documents)
+          .where(eq(documents.verified, false)),
       ]);
 
     const activeLoans = loanRows.filter((l) => l.status === "active");
@@ -97,6 +102,7 @@ router.get("/dashboard/stats", async (req, res) => {
       activeLoans: activeLoans.length,
       overdueLoans: overdueLoans.length,
       pendingLoans: pendingLoans.length,
+      pendingDocuments: Number(pendingDocsCount[0].count),
       outstandingBalance,
       totalDisbursed: disbursedLoans.reduce((s, l) => s + Number(l.principal), 0),
       totalCollected: Number(totalCollected[0].total),

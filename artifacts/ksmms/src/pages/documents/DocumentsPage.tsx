@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, CheckCircle, ExternalLink, Trash2 } from 'lucide-react';
 import DocThumbnail from '../../components/documents/DocThumbnail';
 import { api } from '../../lib/api';
@@ -36,10 +37,16 @@ function getDocumentViewUrl(doc: DocumentRow): string {
 export default function DocumentsPage() {
   const { hasRole, user } = useAuth();
   const { addNotification } = useNotification();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [entityFilter, setEntityFilter] = useState('');
-  const [verifiedFilter, setVerifiedFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState(() => {
+    const v = searchParams.get('verified');
+    if (v === 'false') return 'unverified';
+    if (v === 'true') return 'verified';
+    return '';
+  });
   const [verifying, setVerifying] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -128,7 +135,17 @@ export default function DocumentsPage() {
       <Card>
         <div className="flex items-end gap-4 mb-4">
           <div className="w-48"><Select options={ENTITY_OPTIONS} value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)} /></div>
-          <div className="w-44"><Select options={VERIFIED_OPTIONS} value={verifiedFilter} onChange={(e) => setVerifiedFilter(e.target.value)} /></div>
+          <div className="w-44"><Select options={VERIFIED_OPTIONS} value={verifiedFilter} onChange={(e) => {
+            const val = e.target.value;
+            setVerifiedFilter(val);
+            setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              if (val === 'verified') next.set('verified', 'true');
+              else if (val === 'unverified') next.set('verified', 'false');
+              else next.delete('verified');
+              return next;
+            }, { replace: true });
+          }} /></div>
         </div>
         <DataTable columns={columns} data={documents} searchPlaceholder="Search documents..."
           emptyMessage={loading ? 'Loading...' : 'No documents found'}
