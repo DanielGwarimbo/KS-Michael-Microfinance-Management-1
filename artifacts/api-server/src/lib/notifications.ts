@@ -146,6 +146,78 @@ async function sendSms(to: string, body: string): Promise<void> {
   }
 }
 
+export interface OverdueInstallmentNotificationPayload {
+  loanNumber: string;
+  clientName: string;
+  installmentNumber: number;
+  dueDate: string;
+  amountDue: number;
+  officerEmail?: string;
+  officerPhone?: string;
+  officerName?: string;
+}
+
+function buildInstallmentEmailSubject(loanNumber: string, installmentNumber: number): string {
+  return `Overdue Installment Alert: ${loanNumber} — Installment #${installmentNumber}`;
+}
+
+function buildInstallmentOfficerEmailBody(payload: OverdueInstallmentNotificationPayload): string {
+  return `Dear ${payload.officerName ?? "Loan Officer"},
+
+This is an automated alert from KS Microfinance Management System.
+
+A repayment installment on one of your loans has become overdue:
+
+  Loan Number       : ${payload.loanNumber}
+  Client Name       : ${payload.clientName}
+  Installment #     : ${payload.installmentNumber}
+  Due Date          : ${payload.dueDate}
+  Amount Due        : ${formatCurrency(payload.amountDue)}
+
+Please follow up with the client at your earliest convenience to arrange payment of this installment.
+
+This message was sent automatically by the KSMMS overdue scheduler.
+Do not reply to this email.
+`;
+}
+
+function buildInstallmentOfficerSmsBody(payload: OverdueInstallmentNotificationPayload): string {
+  return `KSMMS Alert: Installment #${payload.installmentNumber} for loan ${payload.loanNumber} (${payload.clientName}) was due on ${payload.dueDate}. Amount: ${formatCurrency(payload.amountDue)}. Please follow up.`;
+}
+
+export async function sendOverdueInstallmentNotifications(payload: OverdueInstallmentNotificationPayload): Promise<void> {
+  const emailEnabled = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const smsEnabled = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER);
+
+  if (!emailEnabled && !smsEnabled) {
+    logger.debug(
+      { loanNumber: payload.loanNumber, installmentNumber: payload.installmentNumber },
+      "No notification channels configured — skipping installment overdue alert",
+    );
+    return;
+  }
+
+  const subject = buildInstallmentEmailSubject(payload.loanNumber, payload.installmentNumber);
+  const tasks: Promise<void>[] = [];
+
+  if (payload.officerEmail) {
+    tasks.push(sendEmail(payload.officerEmail, subject, buildInstallmentOfficerEmailBody(payload)));
+  }
+  if (payload.officerPhone && smsEnabled) {
+    tasks.push(sendSms(payload.officerPhone, buildInstallmentOfficerSmsBody(payload)));
+  }
+
+  if (tasks.length === 0) {
+    logger.debug(
+      { loanNumber: payload.loanNumber, installmentNumber: payload.installmentNumber },
+      "No officer contact details available — skipping installment overdue notification",
+    );
+    return;
+  }
+
+  await Promise.allSettled(tasks);
+}
+
 export async function sendOverdueNotifications(payload: OverdueNotificationPayload): Promise<void> {
   const emailEnabled = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
   const smsEnabled = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER);

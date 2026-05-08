@@ -2,7 +2,7 @@ import { db } from "@workspace/db";
 import { loans, repaymentSchedules, auditLogs, userProfiles, roles, clients } from "@workspace/db/schema";
 import { eq, and, lt, inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { sendOverdueNotifications } from "../lib/notifications";
+import { sendOverdueNotifications, sendOverdueInstallmentNotifications } from "../lib/notifications";
 
 interface SystemActor {
   id: string;
@@ -90,6 +90,7 @@ export async function runOverdueCheck(): Promise<void> {
         loan_id: repaymentSchedules.loan_id,
         due_date: repaymentSchedules.due_date,
         installment_number: repaymentSchedules.installment_number,
+        amount_due: repaymentSchedules.amount_due,
       })
       .from(repaymentSchedules)
       .where(and(eq(repaymentSchedules.status, "pending"), lt(repaymentSchedules.due_date, today)));
@@ -121,6 +122,9 @@ export async function runOverdueCheck(): Promise<void> {
           },
         })),
       );
+
+      // Notify loan officer for each newly overdue installment
+      await Promise.allSettled(overdueSchedules.map((schedule) => sendOverdueNotificationForInstallment(schedule)));
     } else {
       logger.info({ date: today }, "No pending schedule installments past due date");
     }
@@ -178,6 +182,68 @@ async function sendOverdueNotificationForLoan(loan: LoanStub): Promise<void> {
     });
   } catch (err) {
     logger.error({ err, loan_id: loan.id }, "Failed to send overdue notifications for loan");
+  }
+}
+
+interface InstallmentStub {
+  id: string;
+  loan_id: string;
+  due_date: string;
+  installment_number: number;
+  amount_due: number;
+}
+
+async function sendOverdueNotificationForInstallment(installment: InstallmentStub): Promise<void> {
+  try {
+    const [loanRow] = await db
+      .select({
+        loan_number: loans.loan_number,
+        client_id: loans.client_id,
+        created_by: loans.created_by,
+      })
+      .from(loans)
+      .where(eq(loans.id, installment.loan_id))
+      .limit(1);
+
+    if (!loanRow) {
+      logger.warn({ installment_id: installment.id }, "Loan not found for installment — skipping notification");
+      return;
+    }
+
+    const [clientRow] = await db
+      .select({
+        first_name: clients.first_name,
+        last_name: clients.last_name,
+        assigned_officer_id: clients.assigned_officer_id,
+      })
+      .from(clients)
+      .where(eq(clients.id, loanRow.client_id))
+      .limit(1);
+
+    const officerId = clientRow?.assigned_officer_id ?? loanRow.created_by;
+
+    const [officerRow] = await db
+      .select({
+        full_name: userProfiles.full_name,
+        email: userProfiles.email,
+        phone: userProfiles.phone,
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.id, officerId))
+      .limit(1);
+
+    await sendOverdueInstallmentNotifications({
+      loanNumber: loanRow.loan_number,
+      clientName: clientRow ? `${clientRow.first_name} ${clientRow.last_name}` : "Client",
+      installmentNumber: installment.installment_number,
+      dueDate: installment.due_date,
+      amountDue: installment.amount_due,
+      officerName: officerRow?.full_name,
+      officerEmail: officerRow?.email || undefined,
+      officerPhone: officerRow?.phone || undefined,
+    });
+  } catch (err) {
+    logger.error({ err, installment_id: installment.id }, "Failed to send overdue installment notification");
   }
 }
 
