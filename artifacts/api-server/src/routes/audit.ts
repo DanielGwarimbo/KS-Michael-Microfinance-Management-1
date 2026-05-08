@@ -42,9 +42,9 @@ router.get("/audit", async (req, res) => {
     return;
   }
 
-  // Full audit log: admin/manager only
+  // Full audit log: admin/ceo/manager only
   const roleName = req.user?.role_name as string | undefined;
-  if (roleName !== "admin" && roleName !== "manager") {
+  if (roleName !== "admin" && roleName !== "ceo" && roleName !== "manager") {
     res.status(403).json({ error: "Insufficient permissions" });
     return;
   }
