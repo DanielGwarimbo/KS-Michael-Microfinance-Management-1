@@ -4,7 +4,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
-import { DollarSign, TrendingUp, Receipt, AlertTriangle } from 'lucide-react';
+import { DollarSign, TrendingUp, Receipt, AlertTriangle, Banknote } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../../lib/utils';
 import type { AccountingEntry } from '../../lib/types';
 
@@ -36,12 +36,13 @@ interface AccountingStats {
   totalCollected: number;
   outstandingBalance: number;
   interestEarned: number;
+  netProfit: number;
 }
 
 export default function AccountingPage() {
   const { addNotification } = useNotification();
   const [entries, setEntries] = useState<AccountingEntry[]>([]);
-  const [stats, setStats] = useState<AccountingStats>({ totalDisbursed: 0, totalCollected: 0, outstandingBalance: 0, interestEarned: 0 });
+  const [stats, setStats] = useState<AccountingStats>({ totalDisbursed: 0, totalCollected: 0, outstandingBalance: 0, interestEarned: 0, netProfit: 0 });
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -90,9 +91,12 @@ export default function AccountingPage() {
         <p className="text-sm text-gray-500 mt-1">Financial transactions and portfolio summary</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard title="Total Disbursed" value={formatCurrency(stats.totalDisbursed)} icon={<DollarSign className="h-5 w-5" />} color="red" />
         <StatCard title="Total Collected" value={formatCurrency(stats.totalCollected)} icon={<Receipt className="h-5 w-5" />} color="green" />
+        <StatCard title="Net Profit" value={formatCurrency(stats.netProfit)} icon={<Banknote className="h-5 w-5" />} color="green" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard title="Interest Earned" value={formatCurrency(stats.interestEarned)} icon={<TrendingUp className="h-5 w-5" />} color="blue" />
         <StatCard title="Outstanding Balance" value={formatCurrency(stats.outstandingBalance)} icon={<AlertTriangle className="h-5 w-5" />} color="amber" />
       </div>

@@ -46,8 +46,13 @@ export default function RepaymentCreatePage() {
 
     setSaving(true);
     try {
-      const freqDivisor = selectedLoan.repayment_frequency === 'monthly' ? 1 : selectedLoan.repayment_frequency === 'biweekly' ? 2 : 4;
-      const simplifiedInterest = amount * (selectedLoan.interest_rate / 100 / 12 / freqDivisor);
+      // Flat-rate split: every dollar repaid carries the same interest-to-principal ratio.
+      // interestFraction = totalInterest / totalPayable  (constant across all instalments)
+      const totalPayable = Number(selectedLoan.total_payable);
+      const principal = Number(selectedLoan.principal);
+      const totalInterestOnLoan = totalPayable - principal;
+      const interestFraction = totalPayable > 0 ? totalInterestOnLoan / totalPayable : 0;
+      const simplifiedInterest = amount * interestFraction;
       const simplifiedPrincipal = amount - simplifiedInterest;
 
       const { error } = await api.post('/repayments', {

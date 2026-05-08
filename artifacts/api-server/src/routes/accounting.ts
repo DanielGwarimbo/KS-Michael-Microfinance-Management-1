@@ -18,30 +18,42 @@ router.get("/accounting/stats", canView, async (req, res) => {
       db
         .select({ total: sql<string>`COALESCE(SUM(principal), 0)` })
         .from(loans)
-        .where(
-          sql`${loans.status} IN ('active', 'overdue', 'closed', 'defaulted')`,
-        ),
+        .where(sql`${loans.status} IN ('active', 'overdue', 'closed', 'defaulted')`),
       // Total collected = sum of ALL repayment amounts (principal + interest)
       db
         .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
         .from(repayments),
-      // Outstanding balance = sum from loans table (authoritative: total_payable - total_paid)
+      // Outstanding balance = authoritative from loans table (total_payable - total_paid)
       db
         .select({ total: sql<string>`COALESCE(SUM(outstanding_balance), 0)` })
         .from(loans)
         .where(sql`${loans.status} IN ('active', 'overdue')`),
-      // Interest earned = sum of interest_earned accounting entries
+      // Interest earned = derived from loan data using the flat-rate interest ratio per loan.
+      // For each loan: interest_earned = total_paid * (total_payable - principal) / total_payable.
+      // This is always accurate regardless of how the repayment split was recorded.
       db
-        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
-        .from(accountingEntries)
-        .where(eq(accountingEntries.transaction_type, "interest_earned")),
+        .select({
+          total: sql<string>`COALESCE(
+            SUM(total_paid * (total_payable - principal) / NULLIF(total_payable, 0)),
+            0
+          )`,
+        })
+        .from(loans)
+        .where(sql`${loans.status} IN ('active', 'overdue', 'closed', 'defaulted')`),
     ]);
 
+    const totalDisbursed = Number(disbursedRow[0].total);
+    const totalCollected = Number(collectedRow[0].total);
+    const interestEarned = Number(interestRow[0].total);
+    // Net profit = cash collected minus principal disbursed — the actual money the business earned
+    const netProfit = totalCollected - totalDisbursed;
+
     res.json({
-      totalDisbursed: Number(disbursedRow[0].total),
-      totalCollected: Number(collectedRow[0].total),
+      totalDisbursed,
+      totalCollected,
       outstandingBalance: Number(outstandingRow[0].total),
-      interestEarned: Number(interestRow[0].total),
+      interestEarned,
+      netProfit,
     });
   } catch (err) {
     console.error(err);
