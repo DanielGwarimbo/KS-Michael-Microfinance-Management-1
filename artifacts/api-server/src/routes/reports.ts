@@ -3,7 +3,6 @@ import { db } from "@workspace/db";
 import {
   loans,
   repayments,
-  accountingEntries,
   userProfiles,
   clients,
 } from "@workspace/db/schema";
@@ -18,7 +17,7 @@ const reportAccess = requireRole("admin", "manager", "accountant");
 
 router.get("/reports/summary", reportAccess, async (req, res) => {
   try {
-    const [allLoans, allRepayments, allEntries, allOfficers, allClients] =
+    const [allLoans, allRepayments, allOfficers, allClients] =
       await Promise.all([
         db
           .select({
@@ -26,6 +25,8 @@ router.get("/reports/summary", reportAccess, async (req, res) => {
             loan_number: loans.loan_number,
             status: loans.status,
             principal: loans.principal,
+            total_payable: loans.total_payable,
+            total_paid: loans.total_paid,
             outstanding_balance: loans.outstanding_balance,
             maturity_date: loans.maturity_date,
             created_by: loans.created_by,
@@ -35,9 +36,6 @@ router.get("/reports/summary", reportAccess, async (req, res) => {
           .from(loans)
           .leftJoin(clients, eq(loans.client_id, clients.id)),
         db.select({ amount: repayments.amount, received_by: repayments.received_by }).from(repayments),
-        db
-          .select({ transaction_type: accountingEntries.transaction_type, amount: accountingEntries.amount })
-          .from(accountingEntries),
         db
           .select({ id: userProfiles.id, full_name: userProfiles.full_name })
           .from(userProfiles)
@@ -57,9 +55,13 @@ router.get("/reports/summary", reportAccess, async (req, res) => {
       (s, l) => s + Number(l.outstanding_balance),
       0,
     );
-    const interestEarned = allEntries
-      .filter((e) => e.transaction_type === "interest_earned")
-      .reduce((s, e) => s + Number(e.amount), 0);
+    // Interest earned: derive from loan data using flat-rate ratio so this
+    // matches the AccountingPage exactly (interest portion of cash collected).
+    const interestEarned = disbursed.reduce((s, l) => {
+      const tp = Number(l.total_payable);
+      if (!tp) return s;
+      return s + (Number(l.total_paid) * (tp - Number(l.principal))) / tp;
+    }, 0);
 
     const officers = allOfficers.map((o) => {
       const oLoans = allLoans.filter((l) => l.created_by === o.id);
@@ -100,15 +102,20 @@ router.get("/reports/summary", reportAccess, async (req, res) => {
 
 router.get("/reports/portfolio", reportAccess, async (req, res) => {
   try {
-    const [allLoans, allRepayments, allEntries] = await Promise.all([
+    const [allLoans, allRepayments] = await Promise.all([
       db.select().from(loans),
       db.select({ amount: repayments.amount }).from(repayments),
-      db.select({ transaction_type: accountingEntries.transaction_type, amount: accountingEntries.amount }).from(accountingEntries),
     ]);
 
     const activeLoans = allLoans.filter((l) => l.status === "active");
     const overdueLoans = allLoans.filter((l) => l.status === "overdue");
     const disbursed = allLoans.filter((l) => ["active", "overdue", "closed", "defaulted"].includes(l.status));
+
+    const interestEarned = disbursed.reduce((s, l) => {
+      const tp = Number(l.total_payable);
+      if (!tp) return s;
+      return s + (Number(l.total_paid) * (tp - Number(l.principal))) / tp;
+    }, 0);
 
     res.json({
       totalLoans: allLoans.length,
@@ -116,7 +123,7 @@ router.get("/reports/portfolio", reportAccess, async (req, res) => {
       totalDisbursed: disbursed.reduce((s, l) => s + Number(l.principal), 0),
       totalCollected: allRepayments.reduce((s, r) => s + Number(r.amount), 0),
       outstandingBalance: [...activeLoans, ...overdueLoans].reduce((s, l) => s + Number(l.outstanding_balance), 0),
-      interestEarned: allEntries.filter((e) => e.transaction_type === "interest_earned").reduce((s, e) => s + Number(e.amount), 0),
+      interestEarned,
     });
   } catch (err) {
     console.error(err);
