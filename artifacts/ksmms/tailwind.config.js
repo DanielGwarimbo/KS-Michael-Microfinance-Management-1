@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Nunito Sans"', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Roboto', 'system-ui', 'sans-serif'],
+        sans:    ['Roboto', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
