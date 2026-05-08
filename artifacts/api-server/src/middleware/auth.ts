@@ -26,7 +26,7 @@ declare global {
   }
 }
 
-type RoleName = "admin" | "manager" | "loan_officer" | "cashier" | "accountant";
+type RoleName = "admin" | "ceo" | "manager" | "loan_officer" | "cashier" | "accountant";
 
 /**
  * Middleware factory — requires the authenticated user to have one of the allowed roles.

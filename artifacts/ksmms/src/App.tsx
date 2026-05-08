@@ -47,18 +47,18 @@ function App() {
                 }
               >
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/clients" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer']}><ClientListPage /></ProtectedRoute>} />
-                <Route path="/clients/:id" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer']}><ClientDetailPage /></ProtectedRoute>} />
-                <Route path="/loans" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer', 'cashier']}><LoanListPage /></ProtectedRoute>} />
-                <Route path="/loans/new" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer']}><LoanCreatePage /></ProtectedRoute>} />
-                <Route path="/loans/:id" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer', 'cashier']}><LoanDetailPage /></ProtectedRoute>} />
-                <Route path="/repayments" element={<ProtectedRoute roles={['admin', 'manager', 'cashier', 'accountant']}><RepaymentListPage /></ProtectedRoute>} />
-                <Route path="/repayments/new" element={<ProtectedRoute roles={['admin', 'cashier']}><RepaymentCreatePage /></ProtectedRoute>} />
-                <Route path="/users" element={<ProtectedRoute roles={['admin']}><UserListPage /></ProtectedRoute>} />
-                <Route path="/accounting" element={<ProtectedRoute roles={['admin', 'manager', 'accountant']}><AccountingPage /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute roles={['admin', 'manager', 'accountant']}><ReportsPage /></ProtectedRoute>} />
-                <Route path="/audit" element={<ProtectedRoute roles={['admin', 'manager']}><AuditLogPage /></ProtectedRoute>} />
-                <Route path="/documents" element={<ProtectedRoute roles={['admin', 'manager', 'loan_officer']}><DocumentsPage /></ProtectedRoute>} />
+                <Route path="/clients" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer']}><ClientListPage /></ProtectedRoute>} />
+                <Route path="/clients/:id" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer']}><ClientDetailPage /></ProtectedRoute>} />
+                <Route path="/loans" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer', 'cashier']}><LoanListPage /></ProtectedRoute>} />
+                <Route path="/loans/new" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer']}><LoanCreatePage /></ProtectedRoute>} />
+                <Route path="/loans/:id" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer', 'cashier']}><LoanDetailPage /></ProtectedRoute>} />
+                <Route path="/repayments" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'cashier', 'accountant']}><RepaymentListPage /></ProtectedRoute>} />
+                <Route path="/repayments/new" element={<ProtectedRoute roles={['admin', 'ceo', 'cashier']}><RepaymentCreatePage /></ProtectedRoute>} />
+                <Route path="/users" element={<ProtectedRoute roles={['admin', 'ceo']}><UserListPage /></ProtectedRoute>} />
+                <Route path="/accounting" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'accountant']}><AccountingPage /></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'accountant']}><ReportsPage /></ProtectedRoute>} />
+                <Route path="/audit" element={<ProtectedRoute roles={['admin', 'ceo', 'manager']}><AuditLogPage /></ProtectedRoute>} />
+                <Route path="/documents" element={<ProtectedRoute roles={['admin', 'ceo', 'manager', 'loan_officer']}><DocumentsPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

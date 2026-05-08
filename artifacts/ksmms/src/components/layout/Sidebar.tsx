@@ -26,15 +26,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard',   icon: <LayoutDashboard className="h-[18px] w-[18px]" />, path: '/dashboard',  roles: ['admin', 'manager', 'loan_officer', 'cashier', 'accountant'] },
-  { label: 'Clients',     icon: <Users           className="h-[18px] w-[18px]" />, path: '/clients',    roles: ['admin', 'manager', 'loan_officer'] },
-  { label: 'Loans',       icon: <HandCoins       className="h-[18px] w-[18px]" />, path: '/loans',      roles: ['admin', 'manager', 'loan_officer', 'cashier'] },
-  { label: 'Repayments',  icon: <Receipt         className="h-[18px] w-[18px]" />, path: '/repayments', roles: ['admin', 'manager', 'cashier', 'accountant'] },
-  { label: 'Users',       icon: <UserCog         className="h-[18px] w-[18px]" />, path: '/users',      roles: ['admin'] },
-  { label: 'Accounting',  icon: <Calculator      className="h-[18px] w-[18px]" />, path: '/accounting', roles: ['admin', 'manager', 'accountant'] },
-  { label: 'Reports',     icon: <FileBarChart    className="h-[18px] w-[18px]" />, path: '/reports',    roles: ['admin', 'manager', 'accountant'] },
-  { label: 'Documents',   icon: <FileText        className="h-[18px] w-[18px]" />, path: '/documents',  roles: ['admin', 'manager', 'loan_officer'] },
-  { label: 'Audit Log',   icon: <Shield          className="h-[18px] w-[18px]" />, path: '/audit',      roles: ['admin', 'manager'] },
+  { label: 'Dashboard',   icon: <LayoutDashboard className="h-[18px] w-[18px]" />, path: '/dashboard',  roles: ['admin', 'ceo', 'manager', 'loan_officer', 'cashier', 'accountant'] },
+  { label: 'Clients',     icon: <Users           className="h-[18px] w-[18px]" />, path: '/clients',    roles: ['admin', 'ceo', 'manager', 'loan_officer'] },
+  { label: 'Loans',       icon: <HandCoins       className="h-[18px] w-[18px]" />, path: '/loans',      roles: ['admin', 'ceo', 'manager', 'loan_officer', 'cashier'] },
+  { label: 'Repayments',  icon: <Receipt         className="h-[18px] w-[18px]" />, path: '/repayments', roles: ['admin', 'ceo', 'manager', 'cashier', 'accountant'] },
+  { label: 'Users',       icon: <UserCog         className="h-[18px] w-[18px]" />, path: '/users',      roles: ['admin', 'ceo'] },
+  { label: 'Accounting',  icon: <Calculator      className="h-[18px] w-[18px]" />, path: '/accounting', roles: ['admin', 'ceo', 'manager', 'accountant'] },
+  { label: 'Reports',     icon: <FileBarChart    className="h-[18px] w-[18px]" />, path: '/reports',    roles: ['admin', 'ceo', 'manager', 'accountant'] },
+  { label: 'Documents',   icon: <FileText        className="h-[18px] w-[18px]" />, path: '/documents',  roles: ['admin', 'ceo', 'manager', 'loan_officer'] },
+  { label: 'Audit Log',   icon: <Shield          className="h-[18px] w-[18px]" />, path: '/audit',      roles: ['admin', 'ceo', 'manager'] },
 ];
 
 function getInitials(name: string) {

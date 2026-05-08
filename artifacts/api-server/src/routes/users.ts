@@ -10,7 +10,7 @@ const router = Router();
 router.use(requireAuth);
 
 // Only admins can list all users
-router.get("/users", requireRole("admin"), async (req, res) => {
+router.get("/users", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const rows = await db
       .select({
@@ -41,7 +41,7 @@ router.get("/users", requireRole("admin"), async (req, res) => {
 });
 
 // Only admins can create users
-router.post("/users", requireRole("admin"), async (req, res) => {
+router.post("/users", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const { email, password, full_name, role_id, phone, is_active } = req.body;
     if (!password) {
@@ -86,7 +86,7 @@ router.post("/users", requireRole("admin"), async (req, res) => {
 });
 
 // Only admins can reset any user's password
-router.put("/users/:id/reset-password", requireRole("admin"), async (req, res) => {
+router.put("/users/:id/reset-password", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const userId = req.params.id as string;
     const { new_password } = req.body;
@@ -137,7 +137,7 @@ router.put("/users/:id/reset-password", requireRole("admin"), async (req, res) =
 });
 
 // Only admins can toggle user active status (and not their own)
-router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) => {
+router.put("/users/:id/toggle-active", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const userId = req.params.id as string;
     if (userId === req.user!.id) {
@@ -182,7 +182,7 @@ router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) =>
 });
 
 // Only admins can permanently delete a user (cannot delete self)
-router.delete("/users/:id", requireRole("admin"), async (req, res) => {
+router.delete("/users/:id", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const userId = req.params.id as string;
     if (userId === req.user!.id) {
