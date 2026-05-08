@@ -64,10 +64,10 @@ router.get("/repayments", async (req, res) => {
   }
 });
 
-// Only admin/cashier can record repayments
+// Only admin/ceo/cashier can record repayments
 router.post(
   "/repayments",
-  requireRole("admin", "cashier"),
+  requireRole("admin", "ceo", "cashier"),
   async (req, res) => {
     try {
       const { loan_id, amount, payment_method, payment_date, notes, principal_amount, interest_amount } = req.body;

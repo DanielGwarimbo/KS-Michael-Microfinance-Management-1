@@ -167,10 +167,10 @@ router.get("/loans/active", async (req, res) => {
   }
 });
 
-// Admin, manager, loan_officer can create loan applications
+// Admin, ceo, manager, loan_officer can create loan applications
 router.post(
   "/loans",
-  requireRole("admin", "manager", "loan_officer"),
+  requireRole("admin", "ceo", "manager", "loan_officer"),
   async (req, res) => {
     try {
       const loan_number = await nextLoanNumber();
@@ -359,10 +359,10 @@ router.get("/loans/:id/documents", async (req, res) => {
   }
 });
 
-// Only admin/manager can approve loans
+// Only admin/ceo/manager can approve loans
 router.post(
   "/loans/:id/approve",
-  requireRole("admin", "manager"),
+  requireRole("admin", "ceo", "manager"),
   async (req, res) => {
     try {
       const approveId = req.params.id as string;
@@ -436,10 +436,10 @@ router.post(
   },
 );
 
-// Only admin/manager can reject loans
+// Only admin/ceo/manager can reject loans
 router.post(
   "/loans/:id/reject",
-  requireRole("admin", "manager"),
+  requireRole("admin", "ceo", "manager"),
   async (req, res) => {
     try {
       const rejectId = req.params.id as string;
@@ -476,10 +476,10 @@ router.post(
   },
 );
 
-// Only admin/cashier can disburse loans
+// Only admin/ceo/cashier can disburse loans
 router.post(
   "/loans/:id/disburse",
-  requireRole("admin", "cashier"),
+  requireRole("admin", "ceo", "cashier"),
   async (req, res) => {
     try {
       const disburseId = req.params.id as string;

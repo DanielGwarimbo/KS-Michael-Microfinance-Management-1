@@ -215,7 +215,7 @@ router.delete(
 // Only admin/manager can verify documents
 router.put(
   "/documents/:id/verify",
-  requireRole("admin", "manager"),
+  requireRole("admin", "ceo", "manager"),
   async (req, res) => {
     try {
       const docId = req.params.id as string;

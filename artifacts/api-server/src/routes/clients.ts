@@ -89,10 +89,10 @@ router.get("/clients", async (req, res) => {
   }
 });
 
-// Admin, manager, loan_officer can create clients
+// Admin, ceo, manager, loan_officer can create clients
 router.post(
   "/clients",
-  requireRole("admin", "manager", "loan_officer"),
+  requireRole("admin", "ceo", "manager", "loan_officer"),
   async (req, res) => {
     try {
       const client_number = await nextClientNumber();
@@ -176,10 +176,10 @@ router.get("/clients/:id", async (req, res) => {
   }
 });
 
-// Admin, manager, loan_officer can update client details
+// Admin, ceo, manager, loan_officer can update client details
 router.put(
   "/clients/:id",
-  requireRole("admin", "manager", "loan_officer"),
+  requireRole("admin", "ceo", "manager", "loan_officer"),
   async (req, res) => {
     try {
       const [row] = await db
@@ -212,10 +212,10 @@ router.put(
   },
 );
 
-// Only admin/manager can verify KYC
+// Only admin/ceo/manager can verify KYC
 router.put(
   "/clients/:id/kyc",
-  requireRole("admin", "manager"),
+  requireRole("admin", "ceo", "manager"),
   async (req, res) => {
     try {
       const [row] = await db
@@ -244,10 +244,10 @@ router.put(
   },
 );
 
-// Only admin/manager can verify a guarantor's KYC
+// Only admin/ceo/manager can verify a guarantor's KYC
 router.put(
   "/clients/:clientId/guarantors/:guarantorId/kyc",
-  requireRole("admin", "manager"),
+  requireRole("admin", "ceo", "manager"),
   async (req, res) => {
     try {
       const { clientId, guarantorId } = req.params as { clientId: string; guarantorId: string };
@@ -301,10 +301,10 @@ router.get("/clients/:id/guarantors", async (req, res) => {
   }
 });
 
-// Admin, manager, loan_officer can add guarantors
+// Admin, ceo, manager, loan_officer can add guarantors
 router.post(
   "/clients/:id/guarantors",
-  requireRole("admin", "manager", "loan_officer"),
+  requireRole("admin", "ceo", "manager", "loan_officer"),
   async (req, res) => {
     try {
       const [row] = await db

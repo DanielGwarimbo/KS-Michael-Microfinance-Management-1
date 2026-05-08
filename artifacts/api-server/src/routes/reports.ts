@@ -14,7 +14,7 @@ const router = Router();
 router.use(requireAuth);
 
 // Only admin, manager, accountant can access reports
-const reportAccess = requireRole("admin", "manager", "accountant");
+const reportAccess = requireRole("admin", "ceo", "manager", "accountant");
 
 router.get("/reports/summary", reportAccess, async (req, res) => {
   try {

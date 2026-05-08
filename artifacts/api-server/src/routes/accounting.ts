@@ -7,7 +7,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 const router = Router();
 router.use(requireAuth);
 
-const canView = requireRole("admin", "manager", "accountant");
+const canView = requireRole("admin", "ceo", "manager", "accountant");
 
 /**
  * Accounting summary using standard microfinance accounting principles.
