@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency, formatDate } from '../../lib/utils';
 import type { Loan } from '../../lib/types';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import StatCard from '../../components/ui/StatCard';
-import { FileBarChart, Download, Clock, Users } from 'lucide-react';
+import { FileBarChart, Download, Clock, Users, Printer } from 'lucide-react';
+import { printPortfolioReport, printOverdueReport, printOfficerReport } from '../../lib/printUtils';
 
 type ReportTab = 'portfolio' | 'overdue' | 'officer';
 
@@ -57,6 +58,16 @@ export default function ReportsPage() {
     return Math.max(0, Math.floor((Date.now() - new Date(loan.maturity_date).getTime()) / 86400000));
   }
 
+  function handlePrint() {
+    if (tab === 'portfolio') {
+      printPortfolioReport(portfolio, formatCurrency);
+    } else if (tab === 'overdue') {
+      printOverdueReport(overdueLoans, formatCurrency, formatDate);
+    } else {
+      printOfficerReport(officers, formatCurrency);
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
 
   const tabs: { key: ReportTab; label: string; icon: React.ReactNode }[] = [
@@ -72,11 +83,18 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <Button variant="outline" size="sm" onClick={() => {
-          const data = tab === 'portfolio' ? [{ ...portfolio }] : tab === 'overdue' ? overdueRows : officerRows;
-          exportCSV(data as Record<string, unknown>[], `${tab}_report`);
-          addNotification('success', 'CSV exported successfully');
-        }}><Download className="h-4 w-4 mr-1" />Export CSV</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            const data = tab === 'portfolio' ? [{ ...portfolio }] : tab === 'overdue' ? overdueRows : officerRows;
+            exportCSV(data as Record<string, unknown>[], `${tab}_report`);
+            addNotification('success', 'CSV exported successfully');
+          }}>
+            <Download className="h-4 w-4 mr-1" /> Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-1" /> Print PDF
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2 border-b border-gray-200 pb-1">

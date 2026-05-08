@@ -9,7 +9,8 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
-import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle, Trash2, Printer } from 'lucide-react';
+import { printLoanStatement } from '../../lib/printUtils';
 import DocThumbnail from '../../components/documents/DocThumbnail';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
 
@@ -148,6 +149,9 @@ export default function LoanDetailPage() {
             <Receipt className="h-4 w-4 mr-2" />Record Payment
           </Button>
         )}
+        <Button variant="outline" onClick={() => printLoanStatement(loan, schedule, repayments, formatCurrency, formatDate)}>
+          <Printer className="h-4 w-4 mr-2" />Print Statement
+        </Button>
       </div>
 
       {/* Missing KYC documents alert */}

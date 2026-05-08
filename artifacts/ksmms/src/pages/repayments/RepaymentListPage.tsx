@@ -5,9 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
-import { Plus } from 'lucide-react';
+import { Plus, Printer } from 'lucide-react';
 import { formatCurrency, formatDate, PAYMENT_METHOD_LABELS } from '../../lib/utils';
 import type { Repayment } from '../../lib/types';
+import { printRepaymentReceipt } from '../../lib/printUtils';
 
 export default function RepaymentListPage() {
   const { roleName } = useAuth();
@@ -42,6 +43,16 @@ export default function RepaymentListPage() {
     { key: 'payment_date', header: 'Date', render: (r: Repayment) => formatDate(r.payment_date) },
     { key: 'payment_method', header: 'Method', render: (r: Repayment) => PAYMENT_METHOD_LABELS[r.payment_method] || r.payment_method },
     { key: 'receiver', header: 'Received By', render: (r: Repayment) => (r as any).receiver?.full_name || '—' },
+    { key: 'actions', header: '', render: (r: Repayment) => (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); printRepaymentReceipt(r, formatCurrency, formatDate); }}
+        title="Print Receipt"
+        className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+      >
+        <Printer className="h-4 w-4" />
+      </button>
+    )},
   ];
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
