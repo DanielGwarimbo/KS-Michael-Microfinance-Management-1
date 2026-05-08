@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   loans,
   repayments,
+  repaymentSchedules,
   userProfiles,
   clients,
 } from "@workspace/db/schema";
@@ -178,6 +179,50 @@ router.get("/reports/officers", reportAccess, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load officer report" });
+  }
+});
+
+router.get("/reports/overdue-installments", reportAccess, async (req, res) => {
+  try {
+    const rows = await db
+      .select({
+        installment_id: repaymentSchedules.id,
+        installment_number: repaymentSchedules.installment_number,
+        due_date: repaymentSchedules.due_date,
+        amount_due: repaymentSchedules.amount_due,
+        amount_paid: repaymentSchedules.amount_paid,
+        loan_number: loans.loan_number,
+        client_first_name: clients.first_name,
+        client_last_name: clients.last_name,
+        client_phone: clients.phone,
+      })
+      .from(repaymentSchedules)
+      .innerJoin(loans, eq(repaymentSchedules.loan_id, loans.id))
+      .leftJoin(clients, eq(loans.client_id, clients.id))
+      .where(eq(repaymentSchedules.status, "overdue"));
+
+    const result = rows
+      .map((r) => {
+        const daysOverdue = r.due_date
+          ? Math.max(0, Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000))
+          : 0;
+        return {
+          loan_number: r.loan_number,
+          client_name: `${r.client_first_name ?? ""} ${r.client_last_name ?? ""}`.trim(),
+          client_phone: r.client_phone ?? "",
+          installment_number: r.installment_number,
+          due_date: r.due_date,
+          amount_due: Number(r.amount_due),
+          amount_paid: Number(r.amount_paid),
+          days_overdue: daysOverdue,
+        };
+      })
+      .sort((a, b) => b.days_overdue - a.days_overdue);
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load overdue installments report" });
   }
 });
 

@@ -8,11 +8,11 @@ import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import {
   FileBarChart, Download, Clock, Users, Printer,
-  Layers, Activity, DollarSign, Wallet, ShieldAlert, TrendingUp,
+  Layers, Activity, DollarSign, Wallet, ShieldAlert, TrendingUp, AlertTriangle,
 } from 'lucide-react';
 import { printPortfolioReport, printOverdueReport, printOfficerReport } from '../../lib/printUtils';
 
-type ReportTab = 'portfolio' | 'overdue' | 'officer';
+type ReportTab = 'portfolio' | 'overdue' | 'officer' | 'overdue-installments';
 
 interface PortfolioStats {
   totalLoans: number;
@@ -85,15 +85,34 @@ function exportCSV(data: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+interface OverdueInstallment {
+  loan_number: string;
+  client_name: string;
+  client_phone: string;
+  installment_number: number;
+  due_date: string;
+  amount_due: number;
+  amount_paid: number;
+  days_overdue: number;
+}
+
 export default function ReportsPage() {
   const { addNotification } = useNotification();
   const [tab, setTab] = useState<ReportTab>('portfolio');
   const [loading, setLoading] = useState(true);
+  const [overdueInstLoading, setOverdueInstLoading] = useState(false);
   const [portfolio, setPortfolio] = useState<PortfolioStats>(EMPTY_PORTFOLIO);
   const [overdueLoans, setOverdueLoans] = useState<Loan[]>([]);
   const [officers, setOfficers] = useState<Array<{ name: string; totalClients: number; totalLoans: number; totalDisbursed: number; totalCollected: number }>>([]);
+  const [overdueInstallments, setOverdueInstallments] = useState<OverdueInstallment[]>([]);
 
   useEffect(() => { loadReportData(); }, []);
+
+  useEffect(() => {
+    if (tab === 'overdue-installments' && overdueInstallments.length === 0 && !overdueInstLoading) {
+      loadOverdueInstallments();
+    }
+  }, [tab]);
 
   async function loadReportData() {
     setLoading(true);
@@ -110,6 +129,19 @@ export default function ReportsPage() {
     }
   }
 
+  async function loadOverdueInstallments() {
+    setOverdueInstLoading(true);
+    try {
+      const { data, error } = await api.get<OverdueInstallment[]>('/reports/overdue-installments');
+      if (error) throw new Error(error);
+      setOverdueInstallments(data || []);
+    } catch {
+      addNotification('error', 'Failed to load overdue installments');
+    } finally {
+      setOverdueInstLoading(false);
+    }
+  }
+
   function getDaysOverdue(loan: Loan): number {
     if (!loan.maturity_date) return 0;
     return Math.max(0, Math.floor((Date.now() - new Date(loan.maturity_date).getTime()) / 86400000));
@@ -118,7 +150,8 @@ export default function ReportsPage() {
   function handlePrint() {
     if (tab === 'portfolio') printPortfolioReport(portfolio, formatCurrency);
     else if (tab === 'overdue') printOverdueReport(overdueLoans, formatCurrency, formatDate);
-    else printOfficerReport(officers, formatCurrency);
+    else if (tab === 'officer') printOfficerReport(officers, formatCurrency);
+    else addNotification('info', 'Print is not available for the Overdue Installments report. Use Export CSV instead.');
   }
 
   function handleExport() {
@@ -132,8 +165,23 @@ export default function ReportsPage() {
       name: o.name, total_clients: o.totalClients, total_loans: o.totalLoans,
       total_disbursed: o.totalDisbursed, total_collected: o.totalCollected,
     }));
-    const data = tab === 'portfolio' ? [{ ...portfolio }] : tab === 'overdue' ? overdueRows : officerRows;
-    exportCSV(data as Record<string, unknown>[], `${tab}_report`);
+    let data: Record<string, unknown>[];
+    if (tab === 'portfolio') data = [{ ...portfolio }];
+    else if (tab === 'overdue') data = overdueRows;
+    else if (tab === 'officer') data = officerRows;
+    else {
+      data = overdueInstallments.map(i => ({
+        loan_number: i.loan_number,
+        client_name: i.client_name,
+        client_phone: i.client_phone,
+        installment_number: i.installment_number,
+        due_date: i.due_date,
+        amount_due: i.amount_due,
+        amount_paid: i.amount_paid,
+        days_overdue: i.days_overdue,
+      }));
+    }
+    exportCSV(data, `${tab}_report`);
     addNotification('success', 'CSV exported successfully');
   }
 
@@ -144,9 +192,10 @@ export default function ReportsPage() {
   );
 
   const tabs: { key: ReportTab; label: string; icon: ReactNode }[] = [
-    { key: 'portfolio', label: 'Portfolio Summary',   icon: <FileBarChart className="h-4 w-4" /> },
-    { key: 'overdue',   label: 'Overdue Loans',        icon: <Clock        className="h-4 w-4" /> },
-    { key: 'officer',   label: 'Officer Performance',  icon: <Users        className="h-4 w-4" /> },
+    { key: 'portfolio',             label: 'Portfolio Summary',       icon: <FileBarChart   className="h-4 w-4" /> },
+    { key: 'overdue',               label: 'Overdue Loans',           icon: <Clock          className="h-4 w-4" /> },
+    { key: 'officer',               label: 'Officer Performance',     icon: <Users          className="h-4 w-4" /> },
+    { key: 'overdue-installments',  label: 'Overdue Installments',    icon: <AlertTriangle  className="h-4 w-4" /> },
   ];
 
   const overdueRows = overdueLoans.map(l => ({
@@ -270,6 +319,45 @@ export default function ReportsPage() {
               searchPlaceholder="Search officers..."
             />
           </div>
+        </Section>
+      )}
+
+      {/* Overdue Installments */}
+      {tab === 'overdue-installments' && (
+        <Section title={`Overdue Installments · ${overdueInstallments.length} ${overdueInstallments.length === 1 ? 'installment' : 'installments'}`}>
+          {overdueInstLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin h-7 w-7 border-[3px] border-brand-200 border-t-brand-600 rounded-full" />
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+              <DataTable
+                columns={[
+                  { key: 'loan_number', header: 'Loan No.' },
+                  { key: 'client_name', header: 'Client' },
+                  { key: 'client_phone', header: 'Phone' },
+                  { key: 'installment_number', header: 'Inst. #', render: (item) => `#${item.installment_number}` },
+                  { key: 'due_date', header: 'Due Date' },
+                  { key: 'amount_due', header: 'Amount Due', render: (item) => formatCurrency(item.amount_due) },
+                  { key: 'amount_paid', header: 'Paid', render: (item) => formatCurrency(item.amount_paid) },
+                  {
+                    key: 'days_overdue',
+                    header: 'Days Overdue',
+                    render: (item) => (
+                      <Badge colorClass={
+                        item.days_overdue > 90 ? 'bg-red-100 text-red-800'
+                          : item.days_overdue > 30 ? 'bg-amber-100 text-amber-800'
+                            : 'bg-gray-100 text-gray-700'
+                      }>{item.days_overdue} days</Badge>
+                    ),
+                  },
+                ]}
+                data={overdueInstallments}
+                searchable
+                searchPlaceholder="Search overdue installments..."
+              />
+            </div>
+          )}
         </Section>
       )}
     </div>
