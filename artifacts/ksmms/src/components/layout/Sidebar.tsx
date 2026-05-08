@@ -71,12 +71,12 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
     >
       {/* Logo / Brand */}
       <div className={classNames(
-        'flex items-center h-20 border-b border-white/[0.07] flex-shrink-0',
+        'flex items-center h-28 border-b border-white/[0.07] flex-shrink-0',
         isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
       )}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/20 bg-white">
+            <div className="h-24 w-24 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/20 bg-white">
               <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-contain" />
             </div>
             <div className="min-w-0">
@@ -86,7 +86,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           </div>
         )}
         {isCollapsed && (
-          <div className="h-12 w-12 rounded-xl overflow-hidden ring-2 ring-white/20 bg-white">
+          <div className="h-[72px] w-[72px] rounded-xl overflow-hidden ring-2 ring-white/20 bg-white">
             <img src="/logo.png" alt="KSM" className="h-full w-full object-contain" />
           </div>
         )}
