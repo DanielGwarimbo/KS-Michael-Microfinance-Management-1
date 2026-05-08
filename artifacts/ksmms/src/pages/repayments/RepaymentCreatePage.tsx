@@ -42,7 +42,7 @@ export default function RepaymentCreatePage() {
     if (!form.loan_id || !selectedLoan) { addNotification('error', 'Please select a loan'); return; }
     const amount = Number(form.amount);
     if (amount <= 0) { addNotification('error', 'Amount must be greater than zero'); return; }
-    if (amount > Number(selectedLoan.outstanding_balance)) { addNotification('error', 'Amount exceeds outstanding balance'); return; }
+    if (Math.round(amount * 100) > Math.round(Number(selectedLoan.outstanding_balance) * 100)) { addNotification('error', 'Amount exceeds outstanding balance'); return; }
 
     setSaving(true);
     try {

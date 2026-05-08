@@ -92,7 +92,7 @@ router.post(
         res.status(400).json({ error: "Amount must be greater than zero" });
         return;
       }
-      if (amt > Number(loan.outstanding_balance)) {
+      if (Math.round(amt * 100) > Math.round(Number(loan.outstanding_balance) * 100)) {
         res.status(400).json({ error: "Amount exceeds outstanding balance" });
         return;
       }
