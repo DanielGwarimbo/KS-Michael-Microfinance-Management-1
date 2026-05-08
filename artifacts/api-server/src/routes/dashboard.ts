@@ -61,12 +61,18 @@ router.get("/dashboard/stats", async (req, res) => {
           .where(eq(documents.verified, false)),
       ]);
 
-    const activeLoans = loanRows.filter((l) => l.status === "active");
-    const overdueLoans = loanRows.filter((l) => l.status === "overdue");
-    const pendingLoans = loanRows.filter((l) => l.status === "pending");
+    // Approved loans = all loans that passed approval (approved, active, overdue).
+    // Excludes pending/rejected (not yet approved) and closed/defaulted (finished).
+    const approvedLoans = loanRows.filter((l) =>
+      ["approved", "active", "overdue"].includes(l.status),
+    );
+    const activeLoans   = loanRows.filter((l) => l.status === "active");
+    const overdueLoans  = loanRows.filter((l) => l.status === "overdue");
+    const pendingLoans  = loanRows.filter((l) => l.status === "pending");
     const disbursedLoans = loanRows.filter((l) =>
       ["active", "overdue", "closed", "defaulted"].includes(l.status),
     );
+    // Outstanding balance only uses disbursed loans (active + overdue).
     const outstandingBalance = [...activeLoans, ...overdueLoans].reduce(
       (s, l) => s + Number(l.outstanding_balance),
       0,
@@ -99,7 +105,7 @@ router.get("/dashboard/stats", async (req, res) => {
 
     res.json({
       totalClients: Number(clientCount[0].count),
-      activeLoans: activeLoans.length,
+      activeLoans: approvedLoans.length,
       overdueLoans: overdueLoans.length,
       pendingLoans: pendingLoans.length,
       pendingDocuments: Number(pendingDocsCount[0].count),

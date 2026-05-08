@@ -218,11 +218,12 @@ export default function DashboardPage() {
         )}
         {canSeeLoans && (
           <KpiCard
-            title="Active Loans"
+            title="Approved Loans"
             value={stats.activeLoans}
             icon={<HandCoins className="h-5 w-5" />}
             color="teal"
-            onClick={() => navigate('/loans?status=active')}
+            sub="Approved, active & overdue"
+            onClick={() => navigate('/loans')}
           />
         )}
         {canSeeFinancials && (
