@@ -61,11 +61,29 @@ export default function AuditLogPage() {
     { key: 'action', header: 'Action', render: (log: AuditLog) => <span className="font-medium">{log.action}</span> },
     { key: 'module', header: 'Module', render: (log: AuditLog) => <Badge colorClass={MODULE_COLORS[log.module] || 'bg-gray-100 text-gray-800'}>{log.module}</Badge> },
     { key: 'entity_type', header: 'Entity Type' },
-    { key: 'details', header: 'Details', render: (log: AuditLog) => (
-      <span className="text-xs font-mono text-gray-500" title={JSON.stringify(log.details)}>
-        {JSON.stringify(log.details || {}).slice(0, 50)}{JSON.stringify(log.details || {}).length > 50 ? '...' : ''}
-      </span>
-    )},
+    { key: 'details', header: 'Details', render: (log: AuditLog) => {
+      const details = log.details as Record<string, unknown> | null | undefined;
+      const isDocumentAction = ['document_uploaded', 'document_deleted', 'document_verified'].includes(log.action);
+      if (isDocumentAction && details) {
+        const parts: string[] = [];
+        if (details.document_type) parts.push(String(details.document_type));
+        if (details.file_name) parts.push(String(details.file_name));
+        const base = parts.join(' — ');
+        const suffix = details.entity_type ? `(${details.entity_type})` : '';
+        const summary = [base, suffix].filter(Boolean).join(' ');
+        return (
+          <span className="text-xs text-gray-700" title={JSON.stringify(details)}>
+            {summary || '—'}
+          </span>
+        );
+      }
+      const raw = JSON.stringify(details || {});
+      return (
+        <span className="text-xs font-mono text-gray-500" title={raw}>
+          {raw.slice(0, 50)}{raw.length > 50 ? '...' : ''}
+        </span>
+      );
+    }},
     { key: 'ip_address', header: 'IP', render: (log: AuditLog) => <span className="font-mono text-xs">{log.ip_address}</span> },
     { key: 'created_at', header: 'Timestamp', render: (log: AuditLog) => formatDateTime(log.created_at) },
   ];
