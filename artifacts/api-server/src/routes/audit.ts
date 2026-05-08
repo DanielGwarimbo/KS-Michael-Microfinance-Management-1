@@ -13,7 +13,7 @@ router.get(
   requireRole("admin", "manager"),
   async (req, res) => {
     try {
-      const { module: mod, from, to } = req.query as Record<string, string>;
+      const { module: mod, from, to, action } = req.query as Record<string, string>;
 
       const rows = await db
         .select({
@@ -36,6 +36,7 @@ router.get(
 
       let result = rows;
       if (mod) result = result.filter((r) => r.module === mod);
+      if (action) result = result.filter((r) => r.action === action);
       if (from) result = result.filter((r) => r.created_at >= new Date(from));
       if (to) result = result.filter((r) => r.created_at <= new Date(to + "T23:59:59"));
 

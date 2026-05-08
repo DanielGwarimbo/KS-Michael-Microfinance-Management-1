@@ -19,6 +19,43 @@ const MODULE_OPTIONS = [
   { value: 'documents', label: 'Documents' },
 ];
 
+const ACTION_OPTIONS_BY_MODULE: Record<string, { value: string; label: string }[]> = {
+  documents: [
+    { value: '', label: 'All Actions' },
+    { value: 'document_uploaded', label: 'Uploaded' },
+    { value: 'document_deleted', label: 'Deleted' },
+    { value: 'document_verified', label: 'Verified' },
+  ],
+  clients: [
+    { value: '', label: 'All Actions' },
+    { value: 'client_created', label: 'Created' },
+    { value: 'client_updated', label: 'Updated' },
+    { value: 'client_deleted', label: 'Deleted' },
+  ],
+  loans: [
+    { value: '', label: 'All Actions' },
+    { value: 'loan_created', label: 'Created' },
+    { value: 'loan_approved', label: 'Approved' },
+    { value: 'loan_rejected', label: 'Rejected' },
+    { value: 'loan_disbursed', label: 'Disbursed' },
+    { value: 'loan_closed', label: 'Closed' },
+  ],
+  repayments: [
+    { value: '', label: 'All Actions' },
+    { value: 'repayment_recorded', label: 'Recorded' },
+  ],
+  users: [
+    { value: '', label: 'All Actions' },
+    { value: 'user_created', label: 'Created' },
+    { value: 'user_updated', label: 'Updated' },
+    { value: 'user_activated', label: 'Activated' },
+    { value: 'user_deactivated', label: 'Deactivated' },
+    { value: 'password_reset', label: 'Password Reset' },
+  ],
+};
+
+const DEFAULT_ACTION_OPTIONS = [{ value: '', label: 'All Actions' }];
+
 const MODULE_COLORS: Record<string, string> = {
   clients: 'bg-blue-100 text-blue-800',
   loans: 'bg-purple-100 text-purple-800',
@@ -33,8 +70,18 @@ export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleFilter, setModuleFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const actionOptions = moduleFilter
+    ? (ACTION_OPTIONS_BY_MODULE[moduleFilter] ?? DEFAULT_ACTION_OPTIONS)
+    : DEFAULT_ACTION_OPTIONS;
+
+  function handleModuleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setModuleFilter(e.target.value);
+    setActionFilter('');
+  }
 
   useEffect(() => { loadLogs(); }, []);
 
@@ -43,6 +90,7 @@ export default function AuditLogPage() {
     try {
       const params = new URLSearchParams();
       if (moduleFilter) params.set('module', moduleFilter);
+      if (actionFilter) params.set('action', actionFilter);
       if (dateFrom) params.set('from', dateFrom);
       if (dateTo) params.set('to', dateTo);
       const { data, error } = await api.get<AuditLog[]>(`/audit${params.toString() ? '?' + params : ''}`);
@@ -95,8 +143,9 @@ export default function AuditLogPage() {
         <p className="text-sm text-gray-500 mt-1">Track all system activity and changes</p>
       </div>
       <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-          <Select label="Module" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} options={MODULE_OPTIONS} />
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
+          <Select label="Module" value={moduleFilter} onChange={handleModuleChange} options={MODULE_OPTIONS} />
+          <Select label="Action" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} options={actionOptions} disabled={actionOptions.length <= 1} />
           <Input label="From" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           <Input label="To" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           <button onClick={loadLogs} className="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors h-[38px] self-end">Apply Filter</button>
