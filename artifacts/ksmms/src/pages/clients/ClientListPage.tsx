@@ -7,7 +7,7 @@ import DataTable from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
-import ClientForm from '../../components/clients/ClientForm';
+import ClientForm, { type GuarantorDraft } from '../../components/clients/ClientForm';
 import { Plus, Eye } from 'lucide-react';
 import { formatCurrency, CLIENT_STATUS_COLORS } from '../../lib/utils';
 import type { Client, UserProfile } from '../../lib/types';
@@ -41,16 +41,28 @@ export default function ClientListPage() {
     setOfficers(data || []);
   }
 
-  async function handleSave(clientData: Partial<Client>) {
+  async function handleSave(clientData: Partial<Client>, guarantors: GuarantorDraft[] = []) {
     try {
       if (editingClient) {
         const { error } = await api.put(`/clients/${editingClient.id}`, clientData);
         if (error) throw new Error(error);
         addNotification('success', 'Client updated successfully');
       } else {
-        const { error } = await api.post('/clients', clientData);
+        const { data: newClient, error } = await api.post<Client>('/clients', clientData);
         if (error) throw new Error(error);
-        addNotification('success', 'Client created successfully');
+        if (newClient && guarantors.length > 0) {
+          const results = await Promise.allSettled(
+            guarantors.map((g) => api.post(`/clients/${newClient.id}/guarantors`, g)),
+          );
+          const failed = results.filter((r) => r.status === 'rejected').length;
+          if (failed > 0) {
+            addNotification('warning', `Client created but ${failed} guarantor(s) could not be saved`);
+          } else {
+            addNotification('success', `Client created with ${guarantors.length} guarantor(s)`);
+          }
+        } else {
+          addNotification('success', 'Client created successfully');
+        }
       }
       setShowForm(false);
       setEditingClient(null);
