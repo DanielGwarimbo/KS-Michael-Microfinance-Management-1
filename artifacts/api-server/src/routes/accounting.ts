@@ -9,28 +9,57 @@ router.use(requireAuth);
 
 const canView = requireRole("admin", "manager", "accountant");
 
-// Accurate summary stats — sourced from the same authoritative tables as
-// dashboard and reports so all three modules show consistent numbers.
+/**
+ * Accounting summary using standard microfinance accounting principles.
+ *
+ * Five categories — each measures a different thing, do NOT confuse them:
+ *
+ *   1. PORTFOLIO  — Receivables (assets). Money owed TO the business.
+ *   2. CASH FLOW  — Actual cash movement. Disbursed principal is NOT an expense;
+ *                   it is an asset that converts back to cash via repayments.
+ *   3. INCOME     — Revenue earned (recognized when cash is received).
+ *                   Interest portion of collections + fees + penalties.
+ *   4. LOSSES     — Expenses that reduce income: write-offs + loan-loss provisions.
+ *   5. PROFIT     — Gross Profit = Income − Losses.
+ *                   (True Net Profit also requires operating expenses such as
+ *                    salaries and rent, which this system does not track.)
+ */
 router.get("/accounting/stats", canView, async (req, res) => {
   try {
-    const [disbursedRow, collectedRow, outstandingRow, interestRow] = await Promise.all([
-      // Total disbursed = sum of principals for all disbursed loans
+    const [
+      portfolioRow,
+      activeLoansRow,
+      defaultedRow,
+      cashRows,
+      interestEarnedRow,
+      penaltyRow,
+      writeOffEntryRow,
+    ] = await Promise.all([
+      // Portfolio aggregates: total disbursed (lifetime), gross loan portfolio
+      // (outstanding on active+overdue), principal still owed
       db
-        .select({ total: sql<string>`COALESCE(SUM(principal), 0)` })
-        .from(loans)
-        .where(sql`${loans.status} IN ('active', 'overdue', 'closed', 'defaulted')`),
-      // Total collected = sum of ALL repayment amounts (principal + interest)
-      db
-        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
-        .from(repayments),
-      // Outstanding balance = authoritative from loans table (total_payable - total_paid)
+        .select({
+          total_disbursed: sql<string>`COALESCE(SUM(CASE WHEN status IN ('active','overdue','closed','defaulted') THEN principal ELSE 0 END), 0)`,
+          gross_portfolio: sql<string>`COALESCE(SUM(CASE WHEN status IN ('active','overdue') THEN outstanding_balance ELSE 0 END), 0)`,
+          principal_outstanding: sql<string>`COALESCE(SUM(CASE WHEN status IN ('active','overdue') THEN principal - (total_paid * principal / NULLIF(total_payable,0)) ELSE 0 END), 0)`,
+          overdue_outstanding: sql<string>`COALESCE(SUM(CASE WHEN status = 'overdue' THEN outstanding_balance ELSE 0 END), 0)`,
+        })
+        .from(loans),
+      db.select({ count: sql<number>`COUNT(*)` }).from(loans).where(sql`status IN ('active','overdue')`),
+      // Defaulted loans — outstanding balance is treated as a loss
       db
         .select({ total: sql<string>`COALESCE(SUM(outstanding_balance), 0)` })
         .from(loans)
-        .where(sql`${loans.status} IN ('active', 'overdue')`),
-      // Interest earned = derived from loan data using the flat-rate interest ratio per loan.
-      // For each loan: interest_earned = total_paid * (total_payable - principal) / total_payable.
-      // This is always accurate regardless of how the repayment split was recorded.
+        .where(eq(loans.status, "defaulted")),
+      // Cash flow: total in (collections) and total out (disbursements)
+      db
+        .select({
+          cash_in: sql<string>`COALESCE(SUM(amount), 0)`,
+        })
+        .from(repayments),
+      // Interest income (revenue): the interest portion of money actually
+      // collected. Derived from loan data using flat-rate ratio so it is
+      // accurate regardless of any per-repayment split issues.
       db
         .select({
           total: sql<string>`COALESCE(
@@ -39,21 +68,73 @@ router.get("/accounting/stats", canView, async (req, res) => {
           )`,
         })
         .from(loans)
-        .where(sql`${loans.status} IN ('active', 'overdue', 'closed', 'defaulted')`),
+        .where(sql`status IN ('active','overdue','closed','defaulted')`),
+      // Penalty income — currently captured as accounting entries
+      db
+        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+        .from(accountingEntries)
+        .where(eq(accountingEntries.transaction_type, "penalty")),
+      // Explicit write-off entries
+      db
+        .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
+        .from(accountingEntries)
+        .where(eq(accountingEntries.transaction_type, "write_off")),
     ]);
 
-    const totalDisbursed = Number(disbursedRow[0].total);
-    const totalCollected = Number(collectedRow[0].total);
-    const interestEarned = Number(interestRow[0].total);
-    // Net profit = cash collected minus principal disbursed — the actual money the business earned
-    const netProfit = totalCollected - totalDisbursed;
+    // Portfolio
+    const totalDisbursed = Number(portfolioRow[0].total_disbursed);
+    const grossLoanPortfolio = Number(portfolioRow[0].gross_portfolio);
+    const principalOutstanding = Number(portfolioRow[0].principal_outstanding);
+    const portfolioAtRisk = Number(portfolioRow[0].overdue_outstanding);
+    const activeLoanCount = Number(activeLoansRow[0].count);
+
+    // Cash flow
+    const totalCashIn = Number(cashRows[0].cash_in);
+    const totalCashOut = totalDisbursed; // disbursed principal = cash out
+    const netCashMovement = totalCashIn - totalCashOut;
+
+    // Income (revenue earned)
+    const interestIncome = Number(interestEarnedRow[0].total);
+    const penaltyIncome = Number(penaltyRow[0].total);
+    const totalRevenue = interestIncome + penaltyIncome;
+
+    // Losses
+    const writeOffs =
+      Number(writeOffEntryRow[0].total) + Number(defaultedRow[0].total);
+    // Loan-loss provision: industry-standard simplified PAR provisioning.
+    // Provision 50% of overdue outstanding balance (PAR>30 proxy).
+    const loanLossProvisions = portfolioAtRisk * 0.5;
+    const totalLosses = writeOffs + loanLossProvisions;
+
+    // Profitability
+    const grossProfit = totalRevenue - totalLosses;
 
     res.json({
-      totalDisbursed,
-      totalCollected,
-      outstandingBalance: Number(outstandingRow[0].total),
-      interestEarned,
-      netProfit,
+      portfolio: {
+        totalDisbursed,
+        grossLoanPortfolio,
+        principalOutstanding,
+        portfolioAtRisk,
+        activeLoanCount,
+      },
+      cashFlow: {
+        totalCashIn,
+        totalCashOut,
+        netCashMovement,
+      },
+      income: {
+        interestIncome,
+        penaltyIncome,
+        totalRevenue,
+      },
+      losses: {
+        writeOffs,
+        loanLossProvisions,
+        totalLosses,
+      },
+      profitability: {
+        grossProfit,
+      },
     });
   } catch (err) {
     console.error(err);
