@@ -65,6 +65,113 @@ const MODULE_COLORS: Record<string, string> = {
   documents: 'bg-gray-100 text-gray-800',
 };
 
+function fmt(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  return String(val);
+}
+
+function fmtMoney(val: unknown): string {
+  const n = Number(val);
+  if (isNaN(n)) return fmt(val);
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function summariseDetails(action: string, d: Record<string, unknown> | null | undefined): string | null {
+  if (!d) return null;
+
+  switch (action) {
+    // ── Clients ──────────────────────────────────────────────────────
+    case 'client_created': {
+      const type = d.client_type ? ` (${d.client_type})` : '';
+      return `Client: ${fmt(d.name)}${type}`;
+    }
+    case 'client_updated':
+      return `Client: ${fmt(d.name || d.client_number)}`;
+    case 'client_kyc_verified':
+      return `KYC verified: ${fmt(d.name)} (${fmt(d.client_number)})`;
+    case 'client_kyc_unverified':
+      return `KYC unverified: ${fmt(d.name)} (${fmt(d.client_number)})`;
+
+    // ── Guarantors ───────────────────────────────────────────────────
+    case 'guarantor_added':
+      return `Guarantor added: ${fmt(d.guarantor_name)}`;
+    case 'guarantor_kyc_verified':
+      return `Guarantor KYC verified: ${fmt(d.guarantor_name)}`;
+    case 'guarantor_kyc_unverified':
+      return `Guarantor KYC unverified: ${fmt(d.guarantor_name)}`;
+
+    // ── Loans ────────────────────────────────────────────────────────
+    case 'loan_application_submitted': {
+      const principal = fmtMoney(d.principal);
+      const term = d.term_months ? ` — ${d.term_months} months` : '';
+      return `Loan ${fmt(d.loan_number)} — ${principal}${term}`;
+    }
+    case 'loan_approved':
+      return `Loan ${fmt(d.loan_number)} — ${fmtMoney(d.principal)} approved`;
+    case 'loan_rejected': {
+      const reason = d.rejection_reason ? `: ${d.rejection_reason}` : '';
+      return `Loan ${fmt(d.loan_number)} rejected${reason}`;
+    }
+    case 'loan_disbursed': {
+      const inst = d.installments ? `, ${d.installments} installments` : '';
+      return `Loan ${fmt(d.loan_number)} — ${fmtMoney(d.principal)} disbursed${inst}`;
+    }
+
+    // ── Repayments ───────────────────────────────────────────────────
+    case 'repayment_recorded': {
+      const receipt = d.receipt_number ? ` (Receipt: ${d.receipt_number})` : '';
+      const loan = d.loan_number ? ` on ${d.loan_number}` : '';
+      return `Repayment of ${fmtMoney(d.amount)}${loan}${receipt}`;
+    }
+    case 'loan_fully_repaid': {
+      const receipt = d.receipt_number ? ` (Receipt: ${d.receipt_number})` : '';
+      const loan = d.loan_number ? ` — ${d.loan_number}` : '';
+      return `Loan fully repaid${loan}${receipt}`;
+    }
+
+    // ── Users ────────────────────────────────────────────────────────
+    case 'user_created': {
+      const email = d.email ? ` (${d.email})` : '';
+      return `${fmt(d.full_name)}${email}`;
+    }
+    case 'profile_updated':
+      return `Profile updated: ${fmt(d.full_name)}`;
+    case 'user_activated':
+      return `${fmt(d.target_user_name || d.full_name)} activated`;
+    case 'user_deactivated':
+      return `${fmt(d.target_user_name || d.full_name)} deactivated`;
+    case 'user_password_reset': {
+      const who = d.target_user_name || d.full_name;
+      const email = d.target_user_email ? ` (${d.target_user_email})` : '';
+      return `Password reset: ${fmt(who)}${email}`;
+    }
+    case 'password_changed':
+      return `Password changed (${fmt(d.email)})`;
+
+    // ── Auth ─────────────────────────────────────────────────────────
+    case 'user_login':
+      return `${fmt(d.full_name)} (${fmt(d.email)})`;
+    case 'user_logout':
+      return `${fmt(d.full_name)}`;
+
+    // ── Documents ────────────────────────────────────────────────────
+    case 'document_uploaded':
+    case 'delete':
+    case 'document_deleted':
+    case 'document_verified': {
+      const parts: string[] = [];
+      if (d.document_type) parts.push(fmt(d.document_type));
+      if (d.file_name) parts.push(fmt(d.file_name));
+      const base = parts.join(' — ');
+      const suffix = d.entity_type ? ` (${d.entity_type})` : '';
+      return base ? `${base}${suffix}` : null;
+    }
+
+    default:
+      return null;
+  }
+}
+
 export default function AuditLogPage() {
   const { addNotification } = useNotification();
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -111,21 +218,15 @@ export default function AuditLogPage() {
     { key: 'entity_type', header: 'Entity Type' },
     { key: 'details', header: 'Details', render: (log: AuditLog) => {
       const details = log.details as Record<string, unknown> | null | undefined;
-      const isDocumentAction = ['document_uploaded', 'document_deleted', 'document_verified'].includes(log.action);
-      if (isDocumentAction && details) {
-        const parts: string[] = [];
-        if (details.document_type) parts.push(String(details.document_type));
-        if (details.file_name) parts.push(String(details.file_name));
-        const base = parts.join(' — ');
-        const suffix = details.entity_type ? `(${details.entity_type})` : '';
-        const summary = [base, suffix].filter(Boolean).join(' ');
+      const raw = JSON.stringify(details || {});
+      const summary = summariseDetails(log.action, details);
+      if (summary) {
         return (
-          <span className="text-xs text-gray-700" title={JSON.stringify(details)}>
-            {summary || '—'}
+          <span className="text-xs text-gray-700" title={raw}>
+            {summary}
           </span>
         );
       }
-      const raw = JSON.stringify(details || {});
       return (
         <span className="text-xs font-mono text-gray-500" title={raw}>
           {raw.slice(0, 50)}{raw.length > 50 ? '...' : ''}
