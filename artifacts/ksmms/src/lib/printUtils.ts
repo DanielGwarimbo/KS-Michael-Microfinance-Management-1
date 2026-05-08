@@ -254,6 +254,93 @@ export function printLoanStatement(
   printDocument(pageWrapper(`Loan Statement — ${loan.loan_number}`, displayName, content));
 }
 
+// ─── Accounting Statement (Financial Position) ──────────────────────────────
+export interface AccountingStatementData {
+  portfolio: { totalDisbursed: number; grossLoanPortfolio: number; principalOutstanding: number; portfolioAtRisk: number; activeLoanCount: number };
+  cashFlow: { totalCashIn: number; totalCashOut: number; netCashMovement: number };
+  income: { interestIncome: number; penaltyIncome: number; totalRevenue: number };
+  losses: { writeOffs: number; loanLossProvisions: number; totalLosses: number };
+  profitability: { grossProfit: number };
+}
+
+export function printAccountingStatement(
+  data: AccountingStatementData,
+  fmtCurrency: (n: number) => string,
+) {
+  const { portfolio, cashFlow, income, losses, profitability } = data;
+
+  const sectionTable = (title: string, rows: Array<[string, string, boolean?]>) => `
+    <h2>${title}</h2>
+    <table>
+      <tbody>
+        ${rows.map(([label, value, emphasize]) => `
+          <tr>
+            <td style="width:65%; ${emphasize ? 'font-weight:700;color:#1B475B;' : ''}">${label}</td>
+            <td style="text-align:right; font-variant-numeric: tabular-nums; ${emphasize ? 'font-weight:800;color:#1B475B;font-size:13px;' : 'font-weight:600;'}">${value}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  const profitColor = profitability.grossProfit >= 0 ? '#065F46' : '#991B1B';
+
+  const content = `
+    <div class="highlight">
+      This statement summarises the company's loan portfolio position, cash flow,
+      income, losses and profitability as of ${todayLong()}. All figures are in USD.
+    </div>
+
+    ${sectionTable('1. Loan Portfolio (Receivables)', [
+      ['Total Disbursed (Lifetime)', fmtCurrency(portfolio.totalDisbursed)],
+      ['Gross Loan Portfolio (Active + Overdue)', fmtCurrency(portfolio.grossLoanPortfolio)],
+      ['Principal Outstanding', fmtCurrency(portfolio.principalOutstanding)],
+      ['Portfolio at Risk (Overdue Outstanding)', fmtCurrency(portfolio.portfolioAtRisk)],
+      ['Number of Active Loans', String(portfolio.activeLoanCount)],
+    ])}
+
+    ${sectionTable('2. Cash Flow', [
+      ['Total Cash In (Collections, Lifetime)', fmtCurrency(cashFlow.totalCashIn)],
+      ['Total Cash Out (Disbursements, Lifetime)', fmtCurrency(cashFlow.totalCashOut)],
+      ['Net Cash Movement', fmtCurrency(cashFlow.netCashMovement), true],
+    ])}
+
+    ${sectionTable('3. Income (Revenue Earned)', [
+      ['Interest Income', fmtCurrency(income.interestIncome)],
+      ['Penalty Income', fmtCurrency(income.penaltyIncome)],
+      ['Total Revenue', fmtCurrency(income.totalRevenue), true],
+    ])}
+
+    ${sectionTable('4. Losses & Provisions', [
+      ['Loan Write-Offs (Defaulted + Explicit)', fmtCurrency(losses.writeOffs)],
+      ['Loan-Loss Provisions (50% of overdue PAR)', fmtCurrency(losses.loanLossProvisions)],
+      ['Total Losses', fmtCurrency(losses.totalLosses), true],
+    ])}
+
+    <h2>5. Profitability</h2>
+    <table>
+      <tbody>
+        <tr><td style="width:65%;">Total Revenue</td><td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${fmtCurrency(income.totalRevenue)}</td></tr>
+        <tr><td>Less: Total Losses</td><td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:#991B1B;">− ${fmtCurrency(losses.totalLosses)}</td></tr>
+        <tr style="border-top:2px solid #1B475B;">
+          <td style="font-weight:800;color:#1B475B;padding-top:10px;">GROSS PROFIT</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:900;font-size:15px;color:${profitColor};padding-top:10px;">${fmtCurrency(profitability.grossProfit)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:24px;padding:14px 16px;background:#F9FAFB;border-radius:8px;font-size:10px;color:#6B7280;line-height:1.6;">
+      <strong style="color:#374151;">Notes to the statement:</strong><br/>
+      • Disbursed principal is treated as a loan receivable (asset), not an expense — it returns through repayments.<br/>
+      • Interest Income is recognised on a cash basis (when collected), derived from each loan's flat-rate interest ratio.<br/>
+      • Loan-Loss Provisions follow a simplified Portfolio-at-Risk rule: 50% of outstanding balance on overdue loans.<br/>
+      • Net Profit (after operating expenses) is not shown — operating expenses such as salaries, rent and utilities are not tracked in this system.
+    </div>
+  `;
+
+  printDocument(pageWrapper('Accounting Statement', `Financial Position as of ${todayLong()}`, content));
+}
+
 // ─── Repayment Receipt ───────────────────────────────────────────────────────
 export function printRepaymentReceipt(
   repayment: Repayment,
