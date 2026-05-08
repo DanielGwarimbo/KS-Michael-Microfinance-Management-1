@@ -76,8 +76,8 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
       )}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-14 w-14 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-white/10">
-              <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-cover" />
+            <div className="h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/20 bg-white p-1">
+              <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-contain" />
             </div>
             <div className="min-w-0">
               <p className="font-display font-extrabold text-white text-sm leading-tight tracking-tight">KS Michael Finance</p>
@@ -86,8 +86,8 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           </div>
         )}
         {isCollapsed && (
-          <div className="h-11 w-11 rounded-xl overflow-hidden ring-1 ring-white/10">
-            <img src="/logo.png" alt="KSM" className="h-full w-full object-cover" />
+          <div className="h-12 w-12 rounded-xl overflow-hidden ring-2 ring-white/20 bg-white p-1">
+            <img src="/logo.png" alt="KSM" className="h-full w-full object-contain" />
           </div>
         )}
 
