@@ -40,6 +40,7 @@ interface DashboardStats {
 
 const ROLE_DESCRIPTIONS: Record<RoleName, string> = {
   admin:        'Full system access — manage all operations, users, and settings.',
+  ceo:          'Executive overview — full read access across all modules and reports.',
   manager:      'Oversee loans, clients, accounting, and audit trail.',
   loan_officer: 'Manage client registrations and loan applications.',
   cashier:      'Process loan disbursements and record repayments.',

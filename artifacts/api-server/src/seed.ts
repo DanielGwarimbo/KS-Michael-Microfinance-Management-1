@@ -8,6 +8,7 @@ async function seed() {
 
   const roleData = [
     { name: "admin", description: "System Administrator - full access" },
+    { name: "ceo", description: "Chief Executive Officer - full read access, view reports and accounting" },
     { name: "manager", description: "Branch Manager - approve loans, view reports" },
     { name: "loan_officer", description: "Loan Officer - manage clients and loans" },
     { name: "cashier", description: "Cashier - record repayments, disburse loans" },

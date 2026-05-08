@@ -181,6 +181,46 @@ router.put("/users/:id/toggle-active", requireRole("admin"), async (req, res) =>
   }
 });
 
+// Only admins can permanently delete a user (cannot delete self)
+router.delete("/users/:id", requireRole("admin"), async (req, res) => {
+  try {
+    const userId = req.params.id as string;
+    if (userId === req.user!.id) {
+      res.status(400).json({ error: "Cannot delete your own account" });
+      return;
+    }
+    const existing = await db
+      .select({ id: userProfiles.id, full_name: userProfiles.full_name, email: userProfiles.email })
+      .from(userProfiles)
+      .where(eq(userProfiles.id, userId))
+      .limit(1);
+
+    if (!existing.length) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    await db.delete(userProfiles).where(eq(userProfiles.id, userId));
+
+    await insertAuditLog({
+      user_id: req.user!.id,
+      user_role: req.user!.role_name,
+      action: "user_deleted",
+      module: "users",
+      entity_id: userId,
+      entity_type: "user",
+      details: { email: existing[0].email, full_name: existing[0].full_name },
+      ip_address: getIp(req),
+      device_info: getDevice(req),
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to delete user" });
+  }
+});
+
 // Any authenticated user can update their own profile (name, phone)
 router.put("/users/me", async (req, res) => {
   try {

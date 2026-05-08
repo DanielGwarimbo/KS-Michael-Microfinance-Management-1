@@ -4,9 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/ui/Button';
 import type { RoleName } from '../lib/types';
+import { Eye, EyeOff } from 'lucide-react';
 
 const ROLE_HOME: Record<RoleName, string> = {
   admin:        '/dashboard',
+  ceo:          '/dashboard',
   manager:      '/dashboard',
   loan_officer: '/dashboard',
   cashier:      '/dashboard',
@@ -16,6 +18,7 @@ const ROLE_HOME: Record<RoleName, string> = {
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, user, loading: authLoading } = useAuth();
   const { addNotification } = useNotification();
@@ -108,16 +111,26 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-[12px] font-semibold text-white/50 mb-1.5 font-display uppercase tracking-widest">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="block w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm text-white placeholder:text-white/25 transition-all duration-150 focus:outline-none focus:border-gold-400/60 focus:bg-white/[0.12] focus:ring-2 focus:ring-gold-400/20"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className="block w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-3 pr-11 text-sm text-white placeholder:text-white/25 transition-all duration-150 focus:outline-none focus:border-gold-400/60 focus:bg-white/[0.12] focus:ring-2 focus:ring-gold-400/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="pt-1">

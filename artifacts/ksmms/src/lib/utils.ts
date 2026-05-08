@@ -156,6 +156,7 @@ export const CLIENT_STATUS_COLORS: Record<string, string> = {
 
 export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrator',
+  ceo: 'Chief Executive Officer',
   manager: 'Manager',
   loan_officer: 'Loan Officer',
   cashier: 'Cashier',
