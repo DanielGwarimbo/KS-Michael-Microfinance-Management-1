@@ -98,7 +98,7 @@ function KpiCard({ title, value, icon, color = 'teal', onClick, sub }: KpiCardPr
           <ArrowUpRight className="h-4 w-4 text-gray-200 group-hover:text-brand-500 transition-colors" />
         )}
       </div>
-      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest font-display">{title}</p>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">{title}</p>
       <p className="mt-1 text-2xl font-bold text-gray-900 font-display leading-tight">{value}</p>
       {sub && <p className="mt-1 text-xs text-gray-400">{sub}</p>}
     </div>
@@ -123,7 +123,7 @@ function AlertItem({ dot, glow, value, label, onClick }: AlertItemProps) {
       <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dot}`} style={{ boxShadow: glow }} />
       <div>
         <p className="text-[15px] font-bold text-gray-900 font-display leading-none">{value}</p>
-        <p className="text-[11px] text-gray-400 mt-0.5">{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{label}</p>
       </div>
     </Tag>
   );
@@ -186,19 +186,19 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest font-display">
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest font-display">
                 {roleName ? ROLE_LABELS[roleName] : 'Staff'}
               </p>
-              <h1 className="text-white text-[17px] font-bold font-display mt-0.5 leading-tight">
+              <h1 className="text-white text-lg font-bold font-display mt-0.5 leading-tight">
                 {getGreeting()}, {profile?.full_name?.split(' ')[0]}
               </h1>
-              <p className="text-white/35 text-[11px] mt-0.5 leading-tight hidden sm:block">
+              <p className="text-white/35 text-xs mt-0.5 leading-tight hidden sm:block">
                 {roleName ? ROLE_DESCRIPTIONS[roleName] : ''}
               </p>
             </div>
           </div>
           <div className="text-right flex-shrink-0 hidden sm:block">
-            <p className="text-white/25 text-[10px] uppercase tracking-widest font-display">Today</p>
+            <p className="text-white/25 text-xs uppercase tracking-widest font-display">Today</p>
             <p className="text-white/60 text-xs mt-0.5">{formatToday()}</p>
           </div>
         </div>

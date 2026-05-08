@@ -57,7 +57,7 @@ export default function DataTable({
               setPage(1);
             }}
             placeholder={searchPlaceholder}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
       )}
@@ -86,7 +86,7 @@ export default function DataTable({
               <tr>
                 <td
                   colSpan={columns.length + (actions ? 1 : 0)}
-                  className="px-4 py-8 text-center text-sm text-gray-500"
+                  className="px-4 py-8 text-center text-base text-gray-500"
                 >
                   {emptyMessage}
                 </td>
@@ -99,12 +99,12 @@ export default function DataTable({
                   className={`hover:bg-gray-50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 text-sm text-gray-900 ${col.className || ''}`}>
+                    <td key={col.key} className={`px-4 py-3.5 text-[15px] text-gray-900 ${col.className || ''}`}>
                       {col.render ? col.render(item) : (item[col.key] as ReactNode) ?? '—'}
                     </td>
                   ))}
                   {actions && (
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-4 py-3.5 text-sm text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         {actions(item)}
                       </div>

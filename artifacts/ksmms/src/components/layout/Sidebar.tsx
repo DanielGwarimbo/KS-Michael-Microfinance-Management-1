@@ -80,8 +80,8 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
               <img src="/logo.png" alt="KS Michael Finance" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="font-display font-bold text-white text-[13px] leading-tight tracking-tight">KS Michael Finance</p>
-              <p className="text-gold-400 text-[10px] font-medium leading-tight tracking-wide">(Pvt) Ltd</p>
+              <p className="font-display font-bold text-white text-sm leading-tight tracking-tight">KS Michael Finance</p>
+              <p className="text-gold-400 text-xs font-medium leading-tight tracking-wide">(Pvt) Ltd</p>
             </div>
           </div>
         )}
@@ -118,7 +118,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {!isCollapsed && (
-          <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest px-3 pb-2 pt-1">Navigation</p>
+          <p className="text-white/30 text-xs font-semibold uppercase tracking-widest px-3 pb-2 pt-1">Navigation</p>
         )}
         {visibleItems.map(item => {
           const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
@@ -128,7 +128,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
               onClick={() => handleNav(item.path)}
               title={isCollapsed ? item.label : undefined}
               className={classNames(
-                'w-full flex items-center gap-3 rounded-xl text-[13px] font-medium transition-all duration-150 group relative',
+                'w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 group relative',
                 isCollapsed ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
                 isActive
                   ? 'bg-gold-400/15 text-gold-400'
@@ -162,8 +162,8 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-white text-xs font-semibold truncate leading-tight">{profile.full_name}</p>
-              <p className="text-gold-500 text-[10px] font-medium leading-tight mt-0.5">
+              <p className="text-white text-sm font-semibold truncate leading-tight">{profile.full_name}</p>
+              <p className="text-gold-500 text-xs font-medium leading-tight mt-0.5">
                 {roleName ? ROLE_LABELS[roleName] : ''}
               </p>
             </div>

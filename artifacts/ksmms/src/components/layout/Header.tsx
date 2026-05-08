@@ -62,10 +62,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
         <div className="min-w-0">
-          <h2 className="font-display text-[15px] sm:text-[17px] font-bold text-gray-900 leading-tight truncate">
+          <h2 className="font-display text-base sm:text-lg font-bold text-gray-900 leading-tight truncate">
             {pageTitle}
           </h2>
-          <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium leading-none mt-0.5 font-display hidden sm:block">
+          <p className="text-xs text-gray-400 font-medium leading-none mt-0.5 font-display hidden sm:block">
             KS Michael Finance (Pvt) Ltd
           </p>
         </div>
@@ -95,8 +95,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </div>
             {/* Name + role — hidden on small screens */}
             <div className="text-left hidden sm:block">
-              <p className="text-[13px] font-semibold text-gray-900 leading-tight font-display">{profile?.full_name}</p>
-              <p className="text-[11px] text-gray-400 leading-tight">
+              <p className="text-sm font-semibold text-gray-900 leading-tight font-display">{profile?.full_name}</p>
+              <p className="text-xs text-gray-400 leading-tight">
                 {roleName ? ROLE_LABELS[roleName as RoleName] : ''}
               </p>
             </div>
@@ -106,13 +106,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {menuOpen && (
             <div className="absolute right-0 mt-1.5 w-52 bg-white rounded-2xl border border-gray-100 shadow-card-md py-1.5 z-50 animate-fade-in">
               <div className="px-4 py-2.5 border-b border-gray-50">
-                <p className="text-xs font-semibold text-gray-900 truncate font-display">{profile?.full_name}</p>
-                <p className="text-[11px] text-gray-400 truncate mt-0.5">{profile?.email}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate font-display">{profile?.full_name}</p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">{profile?.email}</p>
               </div>
               <div className="pt-1">
                 <button
                   onClick={() => { setMenuOpen(false); navigate('/profile'); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors font-medium"
                 >
                   <Settings className="h-4 w-4 text-gray-400" />
                   My Profile
@@ -120,7 +120,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <div className="mx-3 my-1 h-px bg-gray-100" />
                 <button
                   onClick={() => { setMenuOpen(false); signOut(); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors font-medium"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out

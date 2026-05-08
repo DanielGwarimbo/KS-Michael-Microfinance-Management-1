@@ -44,7 +44,7 @@ export default function StatCard({ title, value, icon, trend, color = 'teal', on
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest font-display">{title}</p>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest font-display">{title}</p>
             <p className="mt-2 text-2xl font-extrabold text-gray-900 font-display leading-none tracking-tight">{value}</p>
             {trend && (
               <div className={classNames(
@@ -64,7 +64,7 @@ export default function StatCard({ title, value, icon, trend, color = 'teal', on
           </div>
         </div>
         {onClick && (
-          <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-gray-400 group-hover:text-brand-600 transition-colors font-display">
+          <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-gray-400 group-hover:text-brand-600 transition-colors font-display">
             <span>View details</span>
             <ArrowUpRight className="h-3 w-3" />
           </div>
