@@ -22,6 +22,12 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl) return null;
+  const path = avatarUrl.replace(/^\/objects\//, '');
+  return `/api/storage/avatars/${path}`;
+}
+
 interface HeaderProps {
   onMenuClick?: () => void;
 }
@@ -46,6 +52,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const avatarSrc = getAvatarSrc(profile?.avatar_url);
 
   return (
     <header
@@ -88,10 +96,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
             className="flex items-center gap-1.5 sm:gap-2.5 px-1.5 sm:px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-150 group"
           >
             {/* Avatar */}
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-white text-xs font-bold font-display">
-                {profile ? getInitials(profile.full_name) : '??'}
-              </span>
+            <div className="h-8 w-8 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt={profile?.full_name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold font-display">
+                    {profile ? getInitials(profile.full_name) : '??'}
+                  </span>
+                </div>
+              )}
             </div>
             {/* Name + role — hidden on small screens */}
             <div className="text-left hidden sm:block">

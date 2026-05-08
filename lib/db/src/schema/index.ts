@@ -26,6 +26,7 @@ export const userProfiles = pgTable("user_profiles", {
     .references(() => roles.id),
   is_active: boolean("is_active").notNull().default(true),
   phone: text("phone").notNull().default(""),
+  avatar_url: text("avatar_url"),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
 });

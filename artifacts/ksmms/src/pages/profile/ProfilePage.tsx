@@ -1,12 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { User, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Lock, CheckCircle, AlertCircle, Camera, Trash2 } from 'lucide-react';
 import { ROLE_LABELS } from '../../lib/utils';
+
+function getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl) return null;
+  const path = avatarUrl.replace(/^\/objects\//, '');
+  return `/api/storage/avatars/${path}`;
+}
 
 function InlineMessage({ type, message }: { type: 'success' | 'error'; message: string }) {
   const isSuccess = type === 'success';
@@ -43,6 +53,13 @@ export default function ProfilePage() {
   });
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarSrc = previewSrc ?? getAvatarSrc(profile?.avatar_url);
 
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -104,12 +121,129 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewSrc(objectUrl);
+
+    setAvatarUploading(true);
+    setAvatarMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await fetch('/api/storage/avatars/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      await refreshProfile();
+      setAvatarMsg({ type: 'success', text: 'Profile photo updated' });
+      addNotification('success', 'Profile photo updated');
+    } catch (err: any) {
+      const msg = err.message || 'Failed to upload photo';
+      setAvatarMsg({ type: 'error', text: msg });
+      addNotification('error', msg);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      setPreviewSrc(null);
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setAvatarUploading(true);
+    setAvatarMsg(null);
+    try {
+      const res = await fetch('/api/storage/avatars/me', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove photo');
+      await refreshProfile();
+      setAvatarMsg({ type: 'success', text: 'Profile photo removed' });
+      addNotification('success', 'Profile photo removed');
+    } catch (err: any) {
+      const msg = err.message || 'Failed to remove photo';
+      setAvatarMsg({ type: 'error', text: msg });
+      addNotification('error', msg);
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
         <p className="text-sm text-gray-500 mt-1">Update your personal details and password</p>
       </div>
+
+      {/* Avatar Card */}
+      <Card>
+        <div className="flex items-center gap-4">
+          {/* Avatar preview */}
+          <div className="relative flex-shrink-0">
+            <div className="h-20 w-20 rounded-2xl overflow-hidden bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-md">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="Profile photo" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-white text-2xl font-bold font-display">
+                  {profile ? getInitials(profile.full_name) : '??'}
+                </span>
+              )}
+            </div>
+            {avatarUploading && (
+              <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center">
+                <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 mb-1">Profile Photo</p>
+            <p className="text-xs text-gray-400 mb-3">JPEG, PNG, WebP or GIF · Max 5 MB</p>
+            <div className="flex items-center gap-2">
+              <label
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-colors
+                  ${avatarUploading ? 'bg-gray-100 text-gray-400 pointer-events-none' : 'bg-brand-600 text-white hover:bg-brand-700'}`}
+              >
+                <Camera className="h-3.5 w-3.5" />
+                {avatarSrc ? 'Change Photo' : 'Upload Photo'}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  disabled={avatarUploading}
+                />
+              </label>
+              {(avatarSrc || profile?.avatar_url) && (
+                <button
+                  onClick={handleRemoveAvatar}
+                  disabled={avatarUploading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              )}
+            </div>
+            {avatarMsg && (
+              <div className="mt-3">
+                <InlineMessage type={avatarMsg.type} message={avatarMsg.text} />
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <div className="flex items-center gap-3 mb-6">

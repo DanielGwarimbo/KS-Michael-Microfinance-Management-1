@@ -10,6 +10,7 @@ interface AuthUser {
   role_name: string;
   is_active: boolean;
   phone: string;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {
@@ -34,6 +35,7 @@ function toProfile(u: AuthUser): UserProfile {
     role_id: u.role_id,
     is_active: u.is_active,
     phone: u.phone,
+    avatar_url: u.avatar_url,
     role: { id: u.role_id, name: u.role_name, description: '', created_at: '' },
     created_at: '',
     updated_at: '',

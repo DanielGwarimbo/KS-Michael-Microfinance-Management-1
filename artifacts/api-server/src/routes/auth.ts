@@ -29,6 +29,7 @@ router.post("/auth/login", async (req, res) => {
         role_name: roles.name,
         is_active: userProfiles.is_active,
         phone: userProfiles.phone,
+        avatar_url: userProfiles.avatar_url,
       })
       .from(userProfiles)
       .leftJoin(roles, eq(userProfiles.role_id, roles.id))

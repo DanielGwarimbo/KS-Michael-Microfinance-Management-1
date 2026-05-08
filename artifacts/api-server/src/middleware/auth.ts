@@ -15,6 +15,7 @@ export interface AuthUser {
   role_name: string;
   is_active: boolean;
   phone: string;
+  avatar_url: string | null;
 }
 
 declare global {
@@ -73,6 +74,7 @@ export async function requireAuth(
       role_name: roles.name,
       is_active: userProfiles.is_active,
       phone: userProfiles.phone,
+      avatar_url: userProfiles.avatar_url,
     })
     .from(userProfiles)
     .leftJoin(roles, eq(userProfiles.role_id, roles.id))

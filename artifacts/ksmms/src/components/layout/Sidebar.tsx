@@ -41,6 +41,12 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl) return null;
+  const path = avatarUrl.replace(/^\/objects\//, '');
+  return `/api/storage/avatars/${path}`;
+}
+
 interface SidebarProps {
   mobile?: boolean;
   onClose?: () => void;
@@ -61,6 +67,8 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
     navigate(path);
     if (mobile && onClose) onClose();
   }
+
+  const avatarSrc = getAvatarSrc(profile?.avatar_url);
 
   return (
     <aside
@@ -156,10 +164,16 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
       {!isCollapsed && profile && (
         <div className="flex-shrink-0 p-3 border-t border-white/[0.07]">
           <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/[0.05]">
-            <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold font-display">
-                {getInitials(profile.full_name)}
-              </span>
+            <div className="h-8 w-8 rounded-lg overflow-hidden flex-shrink-0">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt={profile.full_name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-brand-600 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold font-display">
+                    {getInitials(profile.full_name)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-white text-sm font-semibold truncate leading-tight">{profile.full_name}</p>
@@ -172,10 +186,16 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
       )}
       {isCollapsed && profile && (
         <div className="flex-shrink-0 p-2 border-t border-white/[0.07] flex justify-center">
-          <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center" title={profile.full_name}>
-            <span className="text-white text-xs font-bold font-display">
-              {getInitials(profile.full_name)}
-            </span>
+          <div className="h-8 w-8 rounded-lg overflow-hidden" title={profile.full_name}>
+            {avatarSrc ? (
+              <img src={avatarSrc} alt={profile.full_name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full bg-brand-600 flex items-center justify-center">
+                <span className="text-white text-xs font-bold font-display">
+                  {getInitials(profile.full_name)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
