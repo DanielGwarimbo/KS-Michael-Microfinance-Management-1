@@ -5,8 +5,42 @@ import { useNotification } from '../../contexts/NotificationContext';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { User, Lock, CheckCircle, AlertCircle, Camera, Trash2 } from 'lucide-react';
+import { User, Lock, CheckCircle, AlertCircle, Camera, Trash2, Activity } from 'lucide-react';
 import { ROLE_LABELS } from '../../lib/utils';
+
+interface ActivityEntry {
+  id: string;
+  action: string;
+  module: string;
+  entity_id: string | null;
+  entity_type: string | null;
+  details: string | null;
+  created_at: string;
+}
+
+function formatAction(action: string): string {
+  return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatModule(module: string): string {
+  return module.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString('en-ZW', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -31,6 +65,17 @@ function InlineMessage({ type, message }: { type: 'success' | 'error'; message: 
 export default function ProfilePage() {
   const { profile, roleName, refreshProfile } = useAuth();
   const { addNotification } = useNotification();
+
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  useEffect(() => {
+    setActivityLoading(true);
+    api.get('/audit?scope=self')
+      .then(({ data }) => setActivity(Array.isArray(data) ? data : []))
+      .catch(() => setActivity([]))
+      .finally(() => setActivityLoading(false));
+  }, []);
 
   const [profileForm, setProfileForm] = useState({
     full_name: profile?.full_name ?? '',
@@ -312,6 +357,45 @@ export default function ProfilePage() {
             <Button type="submit" loading={pwSaving}>Change Password</Button>
           </div>
         </form>
+      </Card>
+
+      {/* Recent Activity Card */}
+      <Card>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+            <Activity className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Recent Activity</h2>
+            <p className="text-xs text-gray-500">Your last 10 actions in the system</p>
+          </div>
+        </div>
+
+        {activityLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : activity.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">No activity recorded yet</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {activity.map((entry) => (
+              <li key={entry.id} className="flex items-start gap-3 py-3">
+                <div className="mt-0.5 h-2 w-2 rounded-full bg-purple-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 font-medium">{formatAction(entry.action)}</p>
+                  <p className="text-xs text-gray-500">
+                    {formatModule(entry.module)}
+                    {entry.entity_id ? ` · #${entry.entity_id}` : ''}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 flex-shrink-0 mt-0.5">
+                  {formatRelativeTime(entry.created_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );
