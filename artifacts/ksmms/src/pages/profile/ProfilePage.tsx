@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -26,6 +26,13 @@ export default function ProfilePage() {
     full_name: profile?.full_name ?? '',
     phone: profile?.phone ?? '',
   });
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' });
+    }
+  }, [profile?.id]);
+
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
