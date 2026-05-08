@@ -1,8 +1,18 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
-import { userProfiles, roles } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import {
+  userProfiles,
+  roles,
+  sessions,
+  clients,
+  loans,
+  repayments,
+  accountingEntries,
+  documents,
+  auditLogs,
+} from "@workspace/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { insertAuditLog, getIp, getDevice } from "../lib/auditLogger";
 
@@ -185,10 +195,13 @@ router.put("/users/:id/toggle-active", requireRole("admin", "ceo"), async (req, 
 router.delete("/users/:id", requireRole("admin", "ceo"), async (req, res) => {
   try {
     const userId = req.params.id as string;
-    if (userId === req.user!.id) {
+    const adminId = req.user!.id;
+
+    if (userId === adminId) {
       res.status(400).json({ error: "Cannot delete your own account" });
       return;
     }
+
     const existing = await db
       .select({ id: userProfiles.id, full_name: userProfiles.full_name, email: userProfiles.email })
       .from(userProfiles)
@@ -200,10 +213,56 @@ router.delete("/users/:id", requireRole("admin", "ceo"), async (req, res) => {
       return;
     }
 
+    // Clean up all FK references before deleting the user.
+    // 1. Delete their active sessions.
+    await db.delete(sessions).where(eq(sessions.user_id, userId));
+
+    // 2. Delete their audit log entries (user_id is NOT NULL here).
+    await db.delete(auditLogs).where(eq(auditLogs.user_id, userId));
+
+    // 3. Nullify nullable FK references in clients.
+    await db.update(clients)
+      .set({ assigned_officer_id: null, updated_at: new Date() })
+      .where(eq(clients.assigned_officer_id, userId));
+    await db.update(clients)
+      .set({ created_by: null, updated_at: new Date() })
+      .where(eq(clients.created_by, userId));
+
+    // 4. Nullify nullable FK references in loans.
+    await db.update(loans)
+      .set({ approved_by: null })
+      .where(eq(loans.approved_by, userId));
+    await db.update(loans)
+      .set({ rejected_by: null })
+      .where(eq(loans.rejected_by, userId));
+    await db.update(loans)
+      .set({ disbursed_by: null })
+      .where(eq(loans.disbursed_by, userId));
+
+    // 5. Reassign NOT NULL FK references to the deleting admin so records are preserved.
+    await db.update(loans)
+      .set({ created_by: adminId })
+      .where(eq(loans.created_by, userId));
+    await db.update(repayments)
+      .set({ received_by: adminId })
+      .where(eq(repayments.received_by, userId));
+    await db.update(accountingEntries)
+      .set({ created_by: adminId })
+      .where(eq(accountingEntries.created_by, userId));
+
+    // 6. Handle documents: NOT NULL uploaded_by → reassign; nullable verified_by → null.
+    await db.update(documents)
+      .set({ uploaded_by: adminId })
+      .where(eq(documents.uploaded_by, userId));
+    await db.update(documents)
+      .set({ verified_by: null })
+      .where(eq(documents.verified_by, userId));
+
+    // 7. Finally delete the user.
     await db.delete(userProfiles).where(eq(userProfiles.id, userId));
 
     await insertAuditLog({
-      user_id: req.user!.id,
+      user_id: adminId,
       user_role: req.user!.role_name,
       action: "user_deleted",
       module: "users",
