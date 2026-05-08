@@ -28,6 +28,14 @@ export interface LoginSession {
   logout_at: string | null;
 }
 
+export interface Director {
+  name: string;
+  id_number: string;
+  id_type: 'national_id' | 'passport';
+  phone: string;
+  email: string;
+}
+
 export interface Client {
   id: string;
   client_number: string;
@@ -48,6 +56,13 @@ export interface Client {
   client_type: 'individual' | 'business';
   business_name: string;
   business_reg_number: string;
+  trading_name: string;
+  date_of_incorporation: string | null;
+  business_type: string;
+  industry_sector: string;
+  num_employees: number;
+  annual_turnover: number;
+  directors: Director[];
   kyc_verified: boolean;
   assigned_officer_id: string | null;
   status: 'active' | 'inactive' | 'blacklisted';
@@ -163,11 +178,29 @@ export interface AccountingEntry {
   creator?: UserProfile;
 }
 
+export type DocumentType =
+  | 'national_id'
+  | 'passport'
+  | 'proof_of_residence'
+  | 'proof_of_employment'
+  | 'payslip'
+  | 'bank_statement'
+  | 'guarantor_document'
+  | 'collateral_insurance'
+  | 'disbursement_form'
+  | 'cr14'
+  | 'cr6'
+  | 'director_id'
+  | 'business_plan'
+  | 'collateral_document'
+  | 'proof_of_business_address'
+  | 'other';
+
 export interface Document {
   id: string;
   entity_type: 'client_kyc' | 'guarantor_kyc' | 'loan' | 'collateral';
   entity_id: string;
-  document_type: 'national_id' | 'passport' | 'proof_of_residence' | 'proof_of_employment' | 'payslip' | 'bank_statement' | 'guarantor_document' | 'collateral_insurance' | 'disbursement_form' | 'other';
+  document_type: DocumentType;
   file_name: string;
   file_path: string;
   file_size: number;

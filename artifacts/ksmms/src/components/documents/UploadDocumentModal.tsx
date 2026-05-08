@@ -5,7 +5,7 @@ import Select from '../ui/Select';
 import { Upload, X, FileText, Camera, RefreshCw, ZoomIn } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 
-const DOCUMENT_TYPES = [
+export const INDIVIDUAL_DOC_TYPES = [
   { value: 'national_id', label: 'National ID' },
   { value: 'passport', label: 'Passport' },
   { value: 'proof_of_residence', label: 'Proof of Residence' },
@@ -18,12 +18,28 @@ const DOCUMENT_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
+export const BUSINESS_DOC_TYPES = [
+  { value: 'cr14', label: 'CR14 — Certificate of Incorporation' },
+  { value: 'cr6', label: 'CR6 — Particulars of Directors' },
+  { value: 'director_id', label: "Director's ID Document" },
+  { value: 'proof_of_business_address', label: 'Proof of Business Address' },
+  { value: 'business_plan', label: 'Business Plan' },
+  { value: 'collateral_document', label: 'Collateral Document' },
+  { value: 'bank_statement', label: 'Bank Statement' },
+  { value: 'national_id', label: 'National ID (Contact Person)' },
+  { value: 'passport', label: 'Passport (Contact Person)' },
+  { value: 'other', label: 'Other' },
+];
+
+const DOCUMENT_TYPES = INDIVIDUAL_DOC_TYPES;
+
 interface UploadDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
   entityType: 'client_kyc' | 'guarantor_kyc' | 'loan' | 'collateral';
   entityId: string;
   onSuccess: () => void;
+  documentTypes?: { value: string; label: string }[];
 }
 
 type Tab = 'upload' | 'camera';
@@ -34,7 +50,9 @@ export default function UploadDocumentModal({
   entityType,
   entityId,
   onSuccess,
+  documentTypes,
 }: UploadDocumentModalProps) {
+  const activeDocTypes = documentTypes ?? DOCUMENT_TYPES;
   const { addNotification } = useNotification();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -43,7 +61,7 @@ export default function UploadDocumentModal({
 
   const [tab, setTab] = useState<Tab>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState('national_id');
+  const [documentType, setDocumentType] = useState(() => (documentTypes ?? DOCUMENT_TYPES)[0]?.value ?? 'national_id');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -172,7 +190,7 @@ export default function UploadDocumentModal({
     setCapturedImage(null);
     setCapturedFile(null);
     setCameraError(null);
-    setDocumentType('national_id');
+    setDocumentType(activeDocTypes[0]?.value ?? 'national_id');
     setProgress(0);
     setTab('upload');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -204,7 +222,7 @@ export default function UploadDocumentModal({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
           <Select
-            options={DOCUMENT_TYPES}
+            options={activeDocTypes}
             value={documentType}
             onChange={(e) => setDocumentType(e.target.value)}
             disabled={uploading}

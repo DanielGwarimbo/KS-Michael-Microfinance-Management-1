@@ -59,6 +59,13 @@ export const clients = pgTable("clients", {
   client_type: text("client_type").notNull().default("individual"),
   business_name: text("business_name").notNull().default(""),
   business_reg_number: text("business_reg_number").notNull().default(""),
+  trading_name: text("trading_name").notNull().default(""),
+  date_of_incorporation: text("date_of_incorporation"),
+  business_type: text("business_type").notNull().default(""),
+  industry_sector: text("industry_sector").notNull().default(""),
+  num_employees: integer("num_employees").notNull().default(0),
+  annual_turnover: doublePrecision("annual_turnover").notNull().default(0),
+  directors: jsonb("directors").notNull().default([]),
   kyc_verified: boolean("kyc_verified").notNull().default(false),
   assigned_officer_id: uuid("assigned_officer_id").references(
     () => userProfiles.id,
