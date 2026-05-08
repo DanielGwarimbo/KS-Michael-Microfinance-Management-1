@@ -138,12 +138,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const roleName = profile?.role?.name as RoleName | undefined;
-  const canSeeClients    = hasRole(['admin', 'manager', 'loan_officer']);
-  const canSeeLoans      = hasRole(['admin', 'manager', 'loan_officer', 'cashier']);
-  const canSeeRepayments = hasRole(['admin', 'manager', 'cashier', 'accountant']);
-  const canSeeFinancials = hasRole(['admin', 'manager', 'cashier', 'accountant']);
-  const canApproveLoans  = hasRole(['admin', 'manager']);
-  const canVerifyDocs    = hasRole(['admin', 'manager']);
+  const canSeeClients    = hasRole(['admin', 'ceo', 'manager', 'loan_officer']);
+  const canSeeLoans      = hasRole(['admin', 'ceo', 'manager', 'loan_officer', 'cashier']);
+  const canSeeRepayments = hasRole(['admin', 'ceo', 'manager', 'cashier', 'accountant']);
+  const canSeeFinancials = hasRole(['admin', 'ceo', 'manager', 'cashier', 'accountant']);
+  const canApproveLoans  = hasRole(['admin', 'ceo', 'manager']);
+  const canVerifyDocs    = hasRole(['admin', 'ceo', 'manager']);
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -191,7 +191,7 @@ export default function DashboardPage() {
                 {roleName ? ROLE_LABELS[roleName] : 'Staff'}
               </p>
               <h1 className="text-white text-lg font-bold font-display mt-0.5 leading-tight">
-                {getGreeting()}, {profile?.full_name?.split(' ')[0]}
+                {getGreeting()}, {profile?.full_name}
               </h1>
               <p className="text-white/35 text-xs mt-0.5 leading-tight hidden sm:block">
                 {roleName ? ROLE_DESCRIPTIONS[roleName] : ''}
