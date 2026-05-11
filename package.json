@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2 ;; esac'",
+    "preinstall": "echo 'Installing dependencies...'",
     "build": "pnpm run typecheck && pnpm -r --filter \"./artifacts/ksmms\" --filter \"./artifacts/mockup-sandbox\" --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/ksmms\" --filter \"./artifacts/mockup-sandbox\" --if-present run typecheck"
