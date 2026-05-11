@@ -1,15 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { api } from '../../lib/api';
+import { getReportsSummary, getOverdueInstallments } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { formatCurrency, formatDate, classNames } from '../../lib/utils';
 import type { Loan } from '../../lib/types';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
-import {
-  FileBarChart, Download, Clock, Users, Printer,
-  Layers, Activity, DollarSign, Wallet, ShieldAlert, TrendingUp, AlertTriangle,
-} from 'lucide-react';
+import { ChartBar as FileBarChart, Download, Clock, Users, Printer, Layers, Activity, DollarSign, Wallet, ShieldAlert, TrendingUp, TriangleAlert as AlertTriangle } from 'lucide-react';
 import { printPortfolioReport, printOverdueReport, printOfficerReport } from '../../lib/printUtils';
 
 type ReportTab = 'portfolio' | 'overdue' | 'officer' | 'overdue-installments';
@@ -117,8 +114,7 @@ export default function ReportsPage() {
   async function loadReportData() {
     setLoading(true);
     try {
-      const { data, error } = await api.get<any>('/reports/summary');
-      if (error) throw new Error(error);
+      const data = await getReportsSummary();
       setPortfolio(data.portfolio || EMPTY_PORTFOLIO);
       setOverdueLoans(data.overdueLoans || []);
       setOfficers(data.officers || []);
@@ -132,8 +128,7 @@ export default function ReportsPage() {
   async function loadOverdueInstallments() {
     setOverdueInstLoading(true);
     try {
-      const { data, error } = await api.get<OverdueInstallment[]>('/reports/overdue-installments');
-      if (error) throw new Error(error);
+      const data = await getOverdueInstallments();
       setOverdueInstallments(data || []);
     } catch {
       addNotification('error', 'Failed to load overdue installments');

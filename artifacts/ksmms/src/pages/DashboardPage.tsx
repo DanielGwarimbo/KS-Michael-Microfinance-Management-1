@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { getDashboardStats } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import Badge from '../components/ui/Badge';
-import {
-  Users, FileText, DollarSign, TrendingUp,
-  AlertTriangle, Clock, HandCoins, Receipt,
-  Calculator, ArrowUpRight, ChevronRight, ShieldAlert,
-} from 'lucide-react';
+import { Users, FileText, DollarSign, TrendingUp, TriangleAlert as AlertTriangle, Clock, HandCoins, Receipt, Calculator, ArrowUpRight, ChevronRight, ShieldAlert } from 'lucide-react';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, ROLE_LABELS } from '../lib/utils';
 import type { RoleName } from '../lib/types';
 
@@ -149,9 +145,8 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     try {
-      const { data, error } = await api.get<DashboardStats>('/dashboard/stats');
-      if (error) throw new Error(error);
-      setStats(data);
+      const data = await getDashboardStats();
+      setStats(data as unknown as DashboardStats);
     } catch {
       addNotification('error', 'Failed to load dashboard');
     } finally {

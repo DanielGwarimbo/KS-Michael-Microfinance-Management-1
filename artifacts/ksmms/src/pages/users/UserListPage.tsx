@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import { getUsers, getRoles, createUser, toggleUserActive, deleteUser, resetUserPassword } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
@@ -68,16 +68,17 @@ export default function UserListPage() {
 
   async function loadUsers() {
     try {
-      const { data, error } = await api.get<UserProfile[]>('/users');
-      if (error) throw new Error(error);
-      setUsers(data || []);
+      const data = await getUsers();
+      setUsers(data);
     } catch { addNotification('error', 'Failed to load users'); }
     finally { setLoading(false); }
   }
 
   async function loadRoles() {
-    const { data } = await api.get<Role[]>('/roles');
-    setRoles(data || []);
+    try {
+      const data = await getRoles();
+      setRoles(data);
+    } catch { addNotification('error', 'Failed to load roles'); }
   }
 
   async function handleCreate() {
@@ -86,8 +87,7 @@ export default function UserListPage() {
     }
     setSaving(true);
     try {
-      const { error } = await api.post('/users', form);
-      if (error) throw new Error(error);
+      await createUser(form);
       addNotification('success', 'User created successfully');
       setShowForm(false); setForm(emptyForm); loadUsers();
     } catch (err: any) {
@@ -97,8 +97,7 @@ export default function UserListPage() {
 
   async function toggleActive(user: UserProfile) {
     try {
-      const { error } = await api.put(`/users/${user.id}/toggle-active`);
-      if (error) throw new Error(error);
+      await toggleUserActive(user.id, !user.is_active);
       addNotification('success', `User ${user.is_active ? 'deactivated' : 'activated'}`);
       loadUsers();
     } catch { addNotification('error', 'Failed to update user status'); }
@@ -108,8 +107,7 @@ export default function UserListPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { error } = await api.delete(`/users/${deleteTarget.id}`);
-      if (error) throw new Error(error);
+      await deleteUser(deleteTarget.id);
       addNotification('success', `${deleteTarget.full_name} has been permanently removed`);
       setDeleteTarget(null);
       loadUsers();
@@ -130,8 +128,7 @@ export default function UserListPage() {
     if (resetForm.new_password !== resetForm.confirm_password) { addNotification('error', 'Passwords do not match'); return; }
     setResetting(true);
     try {
-      const { error } = await api.put(`/users/${resetTarget.id}/reset-password`, { new_password: resetForm.new_password });
-      if (error) throw new Error(error);
+      await resetUserPassword(resetTarget.id, resetForm.new_password);
       addNotification('success', `Password reset successfully for ${resetTarget.full_name}`);
       setResetTarget(null);
     } catch (err: any) {

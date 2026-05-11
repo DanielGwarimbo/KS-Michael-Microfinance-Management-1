@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import { getAuditLogs } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
@@ -195,14 +195,13 @@ export default function AuditLogPage() {
   async function loadLogs() {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (moduleFilter) params.set('module', moduleFilter);
-      if (actionFilter) params.set('action', actionFilter);
-      if (dateFrom) params.set('from', dateFrom);
-      if (dateTo) params.set('to', dateTo);
-      const { data, error } = await api.get<AuditLog[]>(`/audit${params.toString() ? '?' + params : ''}`);
-      if (error) throw new Error(error);
-      setLogs(data || []);
+      const filters: { module?: string; action?: string; from?: string; to?: string } = {};
+      if (moduleFilter) filters.module = moduleFilter;
+      if (actionFilter) filters.action = actionFilter;
+      if (dateFrom) filters.from = dateFrom;
+      if (dateTo) filters.to = dateTo;
+      const data = await getAuditLogs(filters);
+      setLogs(data);
     } catch {
       addNotification('error', 'Failed to load audit logs');
     } finally {

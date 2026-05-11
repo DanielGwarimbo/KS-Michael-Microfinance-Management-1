@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getClients, createLoan } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { calculateLoan, formatCurrency, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS } from '../../lib/utils';
 import { ArrowLeft } from 'lucide-react';
-import type { Client, Loan } from '../../lib/types';
+import type { Client, Loan, LoanProductType } from '../../lib/types';
 
 export default function LoanCreatePage() {
   const { addNotification } = useNotification();
@@ -33,8 +33,12 @@ export default function LoanCreatePage() {
   useEffect(() => { recalculate(); }, [form.principal, form.interest_rate, form.term_months, form.repayment_frequency]);
 
   async function loadClients() {
-    const { data } = await api.get<Client[]>('/clients?status=active');
-    setClients(data || []);
+    try {
+      const allClients = await getClients();
+      setClients(allClients.filter((c) => c.status === 'active'));
+    } catch {
+      /* silently fail — clients list will be empty */
+    }
   }
 
   function recalculate() {
@@ -53,21 +57,20 @@ export default function LoanCreatePage() {
     setSaving(true);
     try {
       const principal = Number(form.principal);
-      const { data: loanData, error } = await api.post<Loan>('/loans', {
+      const loanData = await createLoan({
         client_id: form.client_id,
         principal,
         interest_rate: Number(form.interest_rate),
         term_months: Number(form.term_months),
-        repayment_frequency: form.repayment_frequency,
+        repayment_frequency: form.repayment_frequency as "monthly" | "biweekly" | "weekly",
         total_payable: calculation.totalPayable,
         installment_amount: calculation.installmentAmount,
         outstanding_balance: calculation.totalPayable,
-        loan_product_type: form.loan_product_type,
+        loan_product_type: form.loan_product_type as LoanProductType,
         purpose: form.purpose,
       });
-      if (error) throw new Error(error);
       addNotification('success', 'Loan application created');
-      navigate(`/loans/${loanData!.id}`);
+      navigate(`/loans/${loanData.id}`);
     } catch (err: any) {
       addNotification('error', err.message || 'Failed to create loan');
     } finally {

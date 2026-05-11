@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getClients, getOfficers, createClient, updateClient, addGuarantor } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
@@ -26,8 +26,7 @@ export default function ClientListPage() {
 
   async function loadClients() {
     try {
-      const { data, error } = await api.get<Client[]>('/clients');
-      if (error) throw new Error(error);
+      const data = await getClients();
       setClients(data || []);
     } catch {
       addNotification('error', 'Failed to load clients');
@@ -37,22 +36,24 @@ export default function ClientListPage() {
   }
 
   async function loadOfficers() {
-    const { data } = await api.get<UserProfile[]>('/officers');
-    setOfficers(data || []);
+    try {
+      const data = await getOfficers();
+      setOfficers(data || []);
+    } catch {
+      addNotification('error', 'Failed to load officers');
+    }
   }
 
   async function handleSave(clientData: Partial<Client>, guarantors: GuarantorDraft[] = []) {
     try {
       if (editingClient) {
-        const { error } = await api.put(`/clients/${editingClient.id}`, clientData);
-        if (error) throw new Error(error);
+        await updateClient(editingClient.id, clientData);
         addNotification('success', 'Client updated successfully');
       } else {
-        const { data: newClient, error } = await api.post<Client>('/clients', clientData);
-        if (error) throw new Error(error);
+        const newClient = await createClient(clientData);
         if (newClient && guarantors.length > 0) {
           const results = await Promise.allSettled(
-            guarantors.map((g) => api.post(`/clients/${newClient.id}/guarantors`, g)),
+            guarantors.map((g) => addGuarantor(newClient.id, g)),
           );
           const failed = results.filter((r) => r.status === 'rejected').length;
           if (failed > 0) {

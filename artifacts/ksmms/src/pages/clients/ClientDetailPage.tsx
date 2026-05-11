@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getClient, getGuarantors, getClientLoans, getEntityDocuments, addGuarantor, updateClientKyc, updateGuarantorKyc, deleteDocument } from '../../lib/api';
+import { getStorageUrl } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
@@ -10,7 +11,7 @@ import Modal from '../../components/ui/Modal';
 import GuarantorForm from '../../components/clients/GuarantorForm';
 import UploadDocumentModal, { BUSINESS_DOC_TYPES, INDIVIDUAL_DOC_TYPES } from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, CLIENT_STATUS_COLORS, EMPLOYMENT_LABELS } from '../../lib/utils';
-import { ArrowLeft, Plus, FileText, Upload, ExternalLink, Trash2, Building2, Users, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Upload, ExternalLink, Trash2, Building2, Users, CircleCheck as CheckCircle2, Circle as XCircle } from 'lucide-react';
 import DocThumbnail from '../../components/documents/DocThumbnail';
 import type { Client, Guarantor, Loan, Document, Director } from '../../lib/types';
 
@@ -58,26 +59,24 @@ export default function ClientDetailPage() {
 
   async function loadClientData() {
     try {
-      const [clientRes, guarantorsRes, loansRes, docsRes] = await Promise.all([
-        api.get<Client>(`/clients/${id}`),
-        api.get<Guarantor[]>(`/clients/${id}/guarantors`),
-        api.get<Loan[]>(`/clients/${id}/loans`),
-        api.get<Document[]>(`/clients/${id}/documents`),
+      const [clientData, guarantorsData, loansData, docsData] = await Promise.all([
+        getClient(id!),
+        getGuarantors(id!),
+        getClientLoans(id!),
+        getEntityDocuments('client_kyc', id!),
       ]);
-      if (clientRes.error) throw new Error(clientRes.error);
-      setClient(clientRes.data);
-      setLoans(loansRes.data || []);
-      setDocuments(docsRes.data || []);
+      setClient(clientData);
+      setLoans(loansData || []);
+      setDocuments(docsData || []);
 
-      const gList = guarantorsRes.data || [];
-      setGuarantors(gList);
+      setGuarantors(guarantorsData || []);
 
-      if (gList.length > 0) {
+      if (guarantorsData.length > 0) {
         const gDocResults = await Promise.all(
-          gList.map((g) => api.get<Document[]>(`/documents?entity_type=guarantor_kyc&entity_id=${g.id}`))
+          guarantorsData.map((g) => getEntityDocuments('guarantor_kyc', g.id))
         );
         const gDocsMap: Record<string, Document[]> = {};
-        gList.forEach((g, i) => { gDocsMap[g.id] = gDocResults[i].data || []; });
+        guarantorsData.forEach((g, i) => { gDocsMap[g.id] = gDocResults[i] || []; });
         setGuarantorDocuments(gDocsMap);
       } else {
         setGuarantorDocuments({});
@@ -91,8 +90,7 @@ export default function ClientDetailPage() {
 
   async function handleSaveGuarantor(data: Partial<Guarantor>) {
     try {
-      const { error } = await api.post(`/clients/${id}/guarantors`, data);
-      if (error) throw new Error(error);
+      await addGuarantor(id!, data);
       addNotification('success', 'Guarantor added');
       setShowGuarantorForm(false);
       loadClientData();
@@ -104,10 +102,9 @@ export default function ClientDetailPage() {
   async function toggleGuarantorKyc(g: Guarantor) {
     setVerifyingGuarantorId(g.id);
     try {
-      const { error } = await api.put(`/clients/${id}/guarantors/${g.id}/kyc`, { kyc_verified: !g.kyc_verified });
-      if (error) throw new Error(error);
+      await updateGuarantorKyc(id!, g.id, !g.kyc_verified);
       addNotification('success', g.kyc_verified ? 'KYC verification removed' : 'Guarantor KYC verified');
-      setGuarantors((prev) => prev.map((x) => x.id === g.id ? { ...x, kyc_verified: !g.kyc_verified } : x));
+      setGuarantors((prev) => prev.map((x) => x.id === g.id ? { ...x, kyc_verified: !x.kyc_verified } : x));
     } catch {
       addNotification('error', 'Failed to update guarantor KYC status');
     } finally {
@@ -118,8 +115,7 @@ export default function ClientDetailPage() {
   async function toggleKyc() {
     if (!client) return;
     try {
-      const { error } = await api.put(`/clients/${client.id}/kyc`, { kyc_verified: !client.kyc_verified });
-      if (error) throw new Error(error);
+      await updateClientKyc(client.id, !client.kyc_verified);
       addNotification('success', client.kyc_verified ? 'KYC verification removed' : 'KYC verified');
       loadClientData();
     } catch {
@@ -130,10 +126,8 @@ export default function ClientDetailPage() {
   async function handleDeleteDocument() {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
-    if (error) {
-      addNotification('error', 'Failed to delete document');
-    } else {
+    try {
+      await deleteDocument(deleteTarget.id);
       addNotification('success', `Deleted: ${deleteTarget.file_name}`);
       setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setGuarantorDocuments((prev) => {
@@ -144,12 +138,15 @@ export default function ClientDetailPage() {
         return updated;
       });
       setDeleteTarget(null);
+    } catch {
+      addNotification('error', 'Failed to delete document');
+    } finally {
+      setDeleting(false);
     }
-    setDeleting(false);
   }
 
   function getDocumentViewUrl(doc: Document): string {
-    return `/api/storage${doc.file_path}`;
+    return getStorageUrl('documents', doc.file_path);
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../../lib/api';
+import { getAuditLogs, updateProfile, changePassword } from '../../lib/api';
+import { getStorageUrl, supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { User, Lock, CheckCircle, AlertCircle, Camera, Trash2, Activity } from 'lucide-react';
+import { User, Lock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Camera, Trash2, Activity } from 'lucide-react';
 import { ROLE_LABELS } from '../../lib/utils';
 
 interface ActivityEntry {
@@ -49,7 +50,7 @@ function getInitials(name: string) {
 function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
   if (!avatarUrl) return null;
   const path = avatarUrl.replace(/^\/objects\//, '');
-  return `/api/storage/avatars/${path}`;
+  return getStorageUrl('avatars', path);
 }
 
 function InlineMessage({ type, message }: { type: 'success' | 'error'; message: string }) {
@@ -71,11 +72,23 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setActivityLoading(true);
-    api.get('/audit?scope=self')
-      .then(({ data }) => setActivity(Array.isArray(data) ? data : []))
+    getAuditLogs()
+      .then((data) => {
+        const userId = profile?.id;
+        const filtered = userId ? data.filter((log: any) => log.user_id === userId) : data;
+        setActivity(filtered.slice(0, 10).map((log: any) => ({
+          id: log.id,
+          action: log.action,
+          module: log.module,
+          entity_id: log.entity_id,
+          entity_type: log.entity_type,
+          details: log.details ? JSON.stringify(log.details) : null,
+          created_at: log.created_at,
+        })));
+      })
       .catch(() => setActivity([]))
       .finally(() => setActivityLoading(false));
-  }, []);
+  }, [profile?.id]);
 
   const [profileForm, setProfileForm] = useState({
     full_name: profile?.full_name ?? '',
@@ -115,11 +128,10 @@ export default function ProfilePage() {
     setProfileSaving(true);
     setProfileMsg(null);
     try {
-      const { error } = await api.put('/users/me', {
+      await updateProfile({
         full_name: profileForm.full_name,
         phone: profileForm.phone,
       });
-      if (error) throw new Error(error);
       await refreshProfile();
       setProfileMsg({ type: 'success', text: 'Profile updated successfully' });
       addNotification('success', 'Profile updated successfully');
@@ -149,11 +161,7 @@ export default function ProfilePage() {
     setPwSaving(true);
     setPwMsg(null);
     try {
-      const { error } = await api.put('/users/me/password', {
-        current_password: pwForm.current_password,
-        new_password: pwForm.new_password,
-      });
-      if (error) throw new Error(error);
+      await changePassword(pwForm.current_password, pwForm.new_password);
       setPwMsg({ type: 'success', text: 'Password changed successfully' });
       addNotification('success', 'Password changed successfully');
       setPwForm({ current_password: '', new_password: '', confirm_password: '' });
@@ -176,15 +184,16 @@ export default function ProfilePage() {
     setAvatarUploading(true);
     setAvatarMsg(null);
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const res = await fetch('/api/storage/avatars/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error('Not authenticated');
+      const filePath = `${userId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ avatar_url: filePath, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) throw updateError;
       await refreshProfile();
       setAvatarMsg({ type: 'success', text: 'Profile photo updated' });
       addNotification('success', 'Profile photo updated');
@@ -204,12 +213,17 @@ export default function ProfilePage() {
     setAvatarUploading(true);
     setAvatarMsg(null);
     try {
-      const res = await fetch('/api/storage/avatars/me', {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to remove photo');
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error('Not authenticated');
+      const { data: profile } = await supabase.from('user_profiles').select('avatar_url').eq('id', userId).maybeSingle();
+      if (profile?.avatar_url) {
+        await supabase.storage.from('avatars').remove([profile.avatar_url]);
+      }
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ avatar_url: null, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) throw updateError;
       await refreshProfile();
       setAvatarMsg({ type: 'success', text: 'Profile photo removed' });
       addNotification('success', 'Profile photo removed');

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getLoan, getRepaymentSchedule, getLoanRepayments, getEntityDocuments, approveLoan, rejectLoan, disburseLoan, deleteDocument } from '../../lib/api';
+import { getStorageUrl } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Card, { CardHeader, CardTitle } from '../../components/ui/Card';
@@ -9,7 +10,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import UploadDocumentModal from '../../components/documents/UploadDocumentModal';
 import { formatCurrency, formatDate, LOAN_STATUS_COLORS, FREQUENCY_LABELS, LOAN_PRODUCT_TYPE_LABELS, generateRepaymentSchedule } from '../../lib/utils';
-import { ArrowLeft, CheckCircle, XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, AlertTriangle, Trash2, Printer } from 'lucide-react';
+import { ArrowLeft, CircleCheck as CheckCircle, Circle as XCircle, DollarSign, Receipt, Upload, FileText, ExternalLink, TriangleAlert as AlertTriangle, Trash2, Printer } from 'lucide-react';
 import { printLoanStatement } from '../../lib/printUtils';
 import DocThumbnail from '../../components/documents/DocThumbnail';
 import type { Loan, RepaymentSchedule, Repayment, Document } from '../../lib/types';
@@ -38,17 +39,16 @@ export default function LoanDetailPage() {
 
   async function loadLoanData() {
     try {
-      const [loanRes, scheduleRes, repaymentsRes, docsRes] = await Promise.all([
-        api.get<Loan>(`/loans/${id}`),
-        api.get<RepaymentSchedule[]>(`/loans/${id}/schedule`),
-        api.get<Repayment[]>(`/loans/${id}/repayments`),
-        api.get<Document[]>(`/loans/${id}/documents`),
+      const [loanData, scheduleData, repaymentsData, docsData] = await Promise.all([
+        getLoan(id!),
+        getRepaymentSchedule(id!),
+        getLoanRepayments(id!),
+        getEntityDocuments('loan', id!),
       ]);
-      if (loanRes.error) throw new Error(loanRes.error);
-      setLoan(loanRes.data);
-      setSchedule(scheduleRes.data || []);
-      setRepayments(repaymentsRes.data || []);
-      setDocuments(docsRes.data || []);
+      setLoan(loanData);
+      setSchedule(scheduleData);
+      setRepayments(repaymentsData);
+      setDocuments(docsData);
     } catch {
       addNotification('error', 'Failed to load loan');
     } finally {
@@ -60,14 +60,7 @@ export default function LoanDetailPage() {
     if (!loan) return;
     setMissingDocs([]);
     try {
-      const result = await api.post<{ missing_documents?: string[] }>(`/loans/${loan.id}/approve`);
-      if (result.error) {
-        const missing = (result.data as any)?.missing_documents;
-        if (Array.isArray(missing) && missing.length > 0) {
-          setMissingDocs(missing);
-        }
-        throw new Error(result.error);
-      }
+      await approveLoan(loan.id);
       addNotification('success', 'Loan approved');
       loadLoanData();
     } catch (err: any) {
@@ -78,8 +71,7 @@ export default function LoanDetailPage() {
   async function handleReject() {
     if (!loan || !rejectionReason) return;
     try {
-      const { error } = await api.post(`/loans/${loan.id}/reject`, { rejection_reason: rejectionReason });
-      if (error) throw new Error(error);
+      await rejectLoan(loan.id, rejectionReason);
       addNotification('success', 'Loan rejected');
       setShowRejectModal(false);
       loadLoanData();
@@ -91,8 +83,7 @@ export default function LoanDetailPage() {
   async function handleDisburse() {
     if (!loan) return;
     try {
-      const { error } = await api.post(`/loans/${loan.id}/disburse`);
-      if (error) throw new Error(error);
+      await disburseLoan(loan.id);
       addNotification('success', 'Loan disbursed successfully');
       loadLoanData();
     } catch (err: any) {
@@ -103,19 +94,20 @@ export default function LoanDetailPage() {
   async function handleDeleteDocument() {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
-    if (error) {
-      addNotification('error', 'Failed to delete document');
-    } else {
+    try {
+      await deleteDocument(deleteTarget.id);
       addNotification('success', `Deleted: ${deleteTarget.file_name}`);
       setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setDeleteTarget(null);
+    } catch {
+      addNotification('error', 'Failed to delete document');
+    } finally {
+      setDeleting(false);
     }
-    setDeleting(false);
   }
 
   function getDocumentViewUrl(doc: Document): string {
-    return `/api/storage${doc.file_path}`;
+    return getStorageUrl('documents', doc.file_path);
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;

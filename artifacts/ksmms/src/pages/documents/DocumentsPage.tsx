@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FileText, CheckCircle, ExternalLink, Trash2 } from 'lucide-react';
+import { FileText, CircleCheck as CheckCircle, ExternalLink, Trash2 } from 'lucide-react';
 import DocThumbnail from '../../components/documents/DocThumbnail';
-import { api } from '../../lib/api';
+import { getDocuments, verifyDocument, deleteDocument } from '../../lib/api';
+import { getStorageUrl } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import Button from '../../components/ui/Button';
@@ -31,7 +32,7 @@ const VERIFIED_OPTIONS = [
 ];
 
 function getDocumentViewUrl(doc: DocumentRow): string {
-  return `/api/storage${doc.file_path}`;
+  return getStorageUrl('documents', doc.file_path);
 }
 
 export default function DocumentsPage() {
@@ -59,22 +60,27 @@ export default function DocumentsPage() {
 
   async function fetchDocuments() {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (entityFilter) params.set('entity_type', entityFilter);
-    if (verifiedFilter) params.set('verified', verifiedFilter === 'verified' ? 'true' : 'false');
-    const { data, error } = await api.get<DocumentRow[]>(`/documents${params.toString() ? '?' + params : ''}`);
-    if (error) addNotification('error', 'Failed to load documents');
-    else setDocuments(data || []);
+    try {
+      const filters: { entity_type?: string; verified?: boolean } = {};
+      if (entityFilter) filters.entity_type = entityFilter;
+      if (verifiedFilter === 'verified') filters.verified = true;
+      else if (verifiedFilter === 'unverified') filters.verified = false;
+      const data = await getDocuments(filters);
+      setDocuments(data);
+    } catch {
+      addNotification('error', 'Failed to load documents');
+    }
     setLoading(false);
   }
 
   async function handleVerify(doc: DocumentRow) {
     setVerifying(doc.id);
-    const { error } = await api.put(`/documents/${doc.id}/verify`);
-    if (error) addNotification('error', 'Verification failed');
-    else {
+    try {
+      await verifyDocument(doc.id);
       addNotification('success', `Verified: ${doc.file_name}`);
       setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, verified: true } : d));
+    } catch {
+      addNotification('error', 'Verification failed');
     }
     setVerifying(null);
   }
@@ -82,13 +88,13 @@ export default function DocumentsPage() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await api.delete(`/documents/${deleteTarget.id}`);
-    if (error) {
-      addNotification('error', 'Failed to delete document');
-    } else {
+    try {
+      await deleteDocument(deleteTarget.id);
       addNotification('success', `Deleted: ${deleteTarget.file_name}`);
       setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setDeleteTarget(null);
+    } catch {
+      addNotification('error', 'Failed to delete document');
     }
     setDeleting(false);
   }

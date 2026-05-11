@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import Select from '../ui/Select';
 import { Upload, X, FileText, Camera, RefreshCw, ZoomIn } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabase';
 
 export const INDIVIDUAL_DOC_TYPES = [
   { value: 'national_id', label: 'National ID' },
@@ -136,26 +137,34 @@ export default function UploadDocumentModal({
     setProgress(20);
 
     try {
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      formData.append('entity_type', entityType);
-      formData.append('entity_id', entityId);
-      formData.append('document_type', documentType);
+      const filePath = `${entityType}/${entityId}/${Date.now()}_${fileToUpload.name}`;
 
-      setProgress(50);
+      setProgress(40);
 
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, fileToUpload);
 
-      setProgress(90);
+      if (uploadError) throw uploadError;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Upload failed');
-      }
+      setProgress(70);
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          entity_type: entityType,
+          entity_id: entityId,
+          document_type: documentType,
+          file_name: fileToUpload.name,
+          file_path: filePath,
+          file_size: fileToUpload.size,
+          mime_type: fileToUpload.type,
+          uploaded_by: user?.id,
+        });
+
+      if (dbError) throw dbError;
 
       setProgress(100);
       addNotification('success', `${fileToUpload.name} uploaded successfully`);

@@ -1,14 +1,10 @@
 import { useEffect, useState, useMemo, type ReactNode } from 'react';
-import { api } from '../../lib/api';
+import { getAccountingEntries, getAccountingStats } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
-import {
-  DollarSign, TrendingUp, Receipt, AlertTriangle, Banknote,
-  Wallet, ArrowDownCircle, ArrowUpCircle, Layers, ShieldAlert, PiggyBank,
-  Printer,
-} from 'lucide-react';
+import { DollarSign, TrendingUp, Receipt, TriangleAlert as AlertTriangle, Banknote, Wallet, CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, Layers, ShieldAlert, PiggyBank, Printer } from 'lucide-react';
 import { formatCurrency, formatDateTime, classNames } from '../../lib/utils';
 import type { AccountingEntry } from '../../lib/types';
 import { printAccountingStatement, type AccountingStatementData } from '../../lib/printUtils';
@@ -97,14 +93,12 @@ export default function AccountingPage() {
 
   async function loadData() {
     try {
-      const [entriesRes, statsRes] = await Promise.all([
-        api.get<AccountingEntry[]>('/accounting'),
-        api.get<AccountingStatementData>('/accounting/stats'),
+      const [entriesData, statsData] = await Promise.all([
+        getAccountingEntries(),
+        getAccountingStats(),
       ]);
-      if (entriesRes.error) throw new Error(entriesRes.error);
-      if (statsRes.error) throw new Error(statsRes.error);
-      setEntries(entriesRes.data || []);
-      setStats(statsRes.data || EMPTY_STATS);
+      setEntries(entriesData);
+      setStats(statsData || EMPTY_STATS);
     } catch {
       addNotification('error', 'Failed to load accounting data');
     } finally {

@@ -1,21 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  HandCoins,
-  Receipt,
-  UserCog,
-  Calculator,
-  FileBarChart,
-  Shield,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+import { LayoutDashboard, Users, HandCoins, Receipt, UserCog, Calculator, ChartBar as FileBarChart, Shield, FileText, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { classNames, ROLE_LABELS } from '../../lib/utils';
+import { getStorageUrl } from '../../lib/supabase';
 import type { RoleName } from '../../lib/types';
 
 interface NavItem {
@@ -44,7 +32,7 @@ function getInitials(name: string) {
 function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
   if (!avatarUrl) return null;
   const path = avatarUrl.replace(/^\/objects\//, '');
-  return `/api/storage/avatars/${path}`;
+  return getStorageUrl('avatars', path);
 }
 
 interface SidebarProps {

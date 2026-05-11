@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getLoans } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
@@ -22,10 +22,8 @@ export default function LoanListPage() {
 
   async function loadLoans() {
     try {
-      const path = statusFilter ? `/loans?status=${statusFilter}` : '/loans';
-      const { data, error } = await api.get<Loan[]>(path);
-      if (error) throw new Error(error);
-      setLoans(data || []);
+      const data = statusFilter ? await getLoans(statusFilter) : await getLoans();
+      setLoans(data);
     } catch {
       addNotification('error', 'Failed to load loans');
     } finally {

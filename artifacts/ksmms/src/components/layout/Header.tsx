@@ -3,6 +3,7 @@ import { LogOut, Bell, Settings, ChevronDown, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROLE_LABELS } from '../../lib/utils';
+import { getStorageUrl } from '../../lib/supabase';
 import type { RoleName } from '../../lib/types';
 
 const PAGE_TITLES: Record<string, string> = {
@@ -25,7 +26,7 @@ function getInitials(name: string) {
 function getAvatarSrc(avatarUrl: string | null | undefined): string | null {
   if (!avatarUrl) return null;
   const path = avatarUrl.replace(/^\/objects\//, '');
-  return `/api/storage/avatars/${path}`;
+  return getStorageUrl('avatars', path);
 }
 
 interface HeaderProps {

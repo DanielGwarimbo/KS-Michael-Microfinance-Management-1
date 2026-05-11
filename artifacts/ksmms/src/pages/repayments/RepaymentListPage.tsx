@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getRepayments } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import DataTable from '../../components/ui/DataTable';
@@ -21,9 +21,8 @@ export default function RepaymentListPage() {
 
   async function loadRepayments() {
     try {
-      const { data, error } = await api.get<Repayment[]>('/repayments');
-      if (error) throw new Error(error);
-      setRepayments(data || []);
+      const data = await getRepayments();
+      setRepayments(data);
     } catch {
       addNotification('error', 'Failed to load repayments');
     } finally {

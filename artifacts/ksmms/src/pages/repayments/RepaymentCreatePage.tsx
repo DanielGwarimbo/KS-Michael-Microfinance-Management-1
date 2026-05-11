@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { getActiveLoans, createRepayment } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -33,8 +33,12 @@ export default function RepaymentCreatePage() {
   }, [form.loan_id, activeLoans]);
 
   async function loadActiveLoans() {
-    const { data } = await api.get<Loan[]>('/loans/active');
-    setActiveLoans(data || []);
+    try {
+      const data = await getActiveLoans();
+      setActiveLoans(data);
+    } catch {
+      addNotification('error', 'Failed to load active loans');
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -55,16 +59,15 @@ export default function RepaymentCreatePage() {
       const simplifiedInterest = amount * interestFraction;
       const simplifiedPrincipal = amount - simplifiedInterest;
 
-      const { error } = await api.post('/repayments', {
+      await createRepayment({
         loan_id: form.loan_id,
         amount,
         principal_amount: Math.max(0, simplifiedPrincipal),
         interest_amount: Math.min(amount, simplifiedInterest),
         payment_date: form.payment_date,
-        payment_method: form.payment_method,
+        payment_method: form.payment_method as "cash" | "mobile_money" | "bank_transfer",
         notes: form.notes,
       });
-      if (error) throw new Error(error);
       addNotification('success', `Payment of ${formatCurrency(amount)} recorded successfully`);
       navigate('/repayments');
     } catch (err: any) {
